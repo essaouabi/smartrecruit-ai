@@ -37,7 +37,7 @@ jobs:
         run: npm install
 
       - name: Run Jest Tests
-        run: npm test
+        run: npx jest
 
   code-quality:
 
@@ -71,6 +71,11 @@ jobs:
         run: |
           echo "Checking src folder"
           test -d src
+
+      - name: Check Tests Folder
+        run: |
+          echo "Checking tests folder"
+          test -d tests
 
   security-check:
 
