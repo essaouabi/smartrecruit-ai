@@ -12,11 +12,8 @@ on:
       - master
 
 jobs:
-
   backend-tests:
-
     name: Backend Tests
-
     runs-on: ubuntu-latest
 
     defaults:
@@ -24,7 +21,6 @@ jobs:
         working-directory: backend
 
     steps:
-
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -33,16 +29,14 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install Dependencies
-        run: npm install
+      - name: Clean Install Dependencies
+        run: npm ci
 
       - name: Run Jest Tests
-        run: npx jest
+        run: node ./node_modules/jest/bin/jest.js --runInBand
 
   code-quality:
-
     name: Code Quality Check
-
     runs-on: ubuntu-latest
 
     defaults:
@@ -50,7 +44,6 @@ jobs:
         working-directory: backend
 
     steps:
-
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -59,8 +52,8 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install Dependencies
-        run: npm install
+      - name: Clean Install Dependencies
+        run: npm ci
 
       - name: Check Package File
         run: |
@@ -78,9 +71,7 @@ jobs:
           test -d tests
 
   security-check:
-
     name: Security Audit
-
     runs-on: ubuntu-latest
 
     defaults:
@@ -88,7 +79,6 @@ jobs:
         working-directory: backend
 
     steps:
-
       - name: Checkout Repository
         uses: actions/checkout@v4
 
@@ -97,8 +87,8 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install Dependencies
-        run: npm install
+      - name: Clean Install Dependencies
+        run: npm ci
 
       - name: NPM Audit
         run: npm audit --audit-level=moderate || true
