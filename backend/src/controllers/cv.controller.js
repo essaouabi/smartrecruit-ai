@@ -1,0 +1,406 @@
+// ===============================
+// IMPORT DATABASE
+// ===============================
+
+const pool = require("../config/db");
+
+// ===============================
+// SKILLS DATABASE
+// ===============================
+
+const skillsList = [
+  "React",
+  "Angular",
+  "Vue",
+  "Node.js",
+  "Express",
+  "JavaScript",
+  "TypeScript",
+  "Python",
+  "Java",
+  "PHP",
+  "SQL",
+  "PostgreSQL",
+  "MySQL",
+  "MongoDB",
+  "Docker",
+  "AWS",
+  "Azure",
+  "Git",
+  "API REST",
+  "Machine Learning",
+  "Deep Learning",
+  "Data",
+  "IA",
+  "NLP",
+  "TensorFlow",
+  "PyTorch",
+  "DevOps",
+  "Kubernetes",
+  "Linux",
+  "HTML",
+  "CSS",
+  "Tailwind",
+  "Bootstrap",
+];
+
+// ===============================
+// DETECT LEVEL
+// ===============================
+
+const detectLevel = (score) => {
+  if (score >= 90) {
+    return "Senior Expert";
+  }
+
+  if (score >= 75) {
+    return "Senior";
+  }
+
+  if (score >= 60) {
+    return "Intermédiaire";
+  }
+
+  return "Junior";
+};
+
+// ===============================
+// ANALYZE CV
+// ===============================
+
+const analyzeCV = async (req, res) => {
+  try {
+    const { cvText, jobContext } = req.body;
+
+    if (!cvText || cvText.trim() === "") {
+      return res.status(400).json({
+        message: "Texte CV requis",
+      });
+    }
+
+    const cvLower = cvText.toLowerCase();
+
+    const jobLower = jobContext
+      ? jobContext.toLowerCase()
+      : "";
+
+    // ===============================
+    // DETECT SKILLS
+    // ===============================
+
+    const detectedSkills = skillsList.filter((skill) =>
+      cvLower.includes(skill.toLowerCase())
+    );
+
+    // ===============================
+    // REQUIRED SKILLS
+    // ===============================
+
+    const requiredSkills = skillsList.filter((skill) =>
+      jobLower.includes(skill.toLowerCase())
+    );
+
+    // ===============================
+    // MATCHING SKILLS
+    // ===============================
+
+    const matchingSkills = detectedSkills.filter((skill) =>
+      requiredSkills.includes(skill)
+    );
+
+    // ===============================
+    // MISSING SKILLS
+    // ===============================
+
+    const missingSkills = requiredSkills.filter(
+      (skill) => !detectedSkills.includes(skill)
+    );
+
+    // ===============================
+    // EXPERIENCE DETECTION
+    // ===============================
+
+    let yearsExperience = 0;
+
+    const experienceRegex =
+      /(\d+)\s*(ans|année|années|years)/gi;
+
+    const experienceMatch =
+      [...cvText.matchAll(experienceRegex)];
+
+    if (experienceMatch.length > 0) {
+      yearsExperience = parseInt(
+        experienceMatch[0][1]
+      );
+    }
+
+    // ===============================
+    // LANGUAGE DETECTION
+    // ===============================
+
+    const speaksEnglish =
+      cvLower.includes("anglais") ||
+      cvLower.includes("english");
+
+    // ===============================
+    // PROJECT DETECTION
+    // ===============================
+
+    const hasProjects =
+      cvLower.includes("projet") ||
+      cvLower.includes("project");
+
+    // ===============================
+    // CERTIFICATIONS
+    // ===============================
+
+    const hasCertification =
+      cvLower.includes("certification") ||
+      cvLower.includes("aws certified") ||
+      cvLower.includes("azure");
+
+    // ===============================
+    // IA SCORE
+    // ===============================
+
+    let score = 35;
+
+    score += detectedSkills.length * 3;
+
+    score += matchingSkills.length * 12;
+
+    score += yearsExperience * 2;
+
+    if (hasProjects) {
+      score += 8;
+    }
+
+    if (speaksEnglish) {
+      score += 6;
+    }
+
+    if (hasCertification) {
+      score += 7;
+    }
+
+    if (score > 100) {
+      score = 100;
+    }
+
+    // ===============================
+    // PROFILE LEVEL
+    // ===============================
+
+    const level = detectLevel(score);
+
+    // ===============================
+    // DECISION RH
+    // ===============================
+
+    let decision = "";
+    let decisionColor = "";
+
+    if (score >= 85) {
+      decision =
+        "Excellent profil — recrutement recommandé";
+      decisionColor = "green";
+    } else if (score >= 70) {
+      decision =
+        "Bon profil — entretien recommandé";
+      decisionColor = "blue";
+    } else if (score >= 55) {
+      decision =
+        "Profil intermédiaire — amélioration possible";
+      decisionColor = "yellow";
+    } else {
+      decision =
+        "Profil insuffisant pour ce poste";
+      decisionColor = "red";
+    }
+
+    // ===============================
+    // SUMMARY
+    // ===============================
+
+    const summary = `
+Le candidat possède ${detectedSkills.length} compétences techniques détectées.
+
+${matchingSkills.length} compétence(s) correspondent directement aux besoins du poste.
+
+Le niveau estimé est : ${level}.
+
+Le score IA global est de ${score}%.
+`;
+
+    // ===============================
+    // STRENGTHS
+    // ===============================
+
+    const strengths = [];
+
+    if (detectedSkills.length >= 5) {
+      strengths.push(
+        "Large stack technique détectée."
+      );
+    }
+
+    if (matchingSkills.length >= 3) {
+      strengths.push(
+        "Très bon matching avec le poste."
+      );
+    }
+
+    if (hasProjects) {
+      strengths.push(
+        "Présence de projets techniques."
+      );
+    }
+
+    if (speaksEnglish) {
+      strengths.push(
+        "Compétence linguistique détectée."
+      );
+    }
+
+    if (yearsExperience >= 2) {
+      strengths.push(
+        "Expérience professionnelle intéressante."
+      );
+    }
+
+    // ===============================
+    // WEAKNESSES
+    // ===============================
+
+    const weaknesses = [];
+
+    if (missingSkills.length > 0) {
+      weaknesses.push(
+        `Compétences manquantes : ${missingSkills.join(", ")}`
+      );
+    }
+
+    if (!speaksEnglish) {
+      weaknesses.push(
+        "Anglais non détecté."
+      );
+    }
+
+    if (!hasProjects) {
+      weaknesses.push(
+        "Peu de projets détectés."
+      );
+    }
+
+    if (yearsExperience === 0) {
+      weaknesses.push(
+        "Expérience professionnelle peu détaillée."
+      );
+    }
+
+    // ===============================
+    // ADVICE
+    // ===============================
+
+    const advice = [
+      "Ajouter davantage de projets techniques.",
+      "Préciser les technologies utilisées.",
+      "Ajouter les résultats mesurables.",
+      "Structurer les expériences professionnelles.",
+      "Ajouter certifications et compétences cloud.",
+    ];
+
+    // ===============================
+    // SAVE DATABASE
+    // ===============================
+
+    await pool.query(
+      `
+      INSERT INTO candidates
+      (
+        name,
+        title,
+        score,
+        skills,
+        missing_skills,
+        summary,
+        job_context
+      )
+      VALUES
+      ($1, $2, $3, $4, $5, $6, $7)
+      `,
+      [
+        "Candidat IA",
+        level,
+        score,
+        detectedSkills.join(", "),
+        missingSkills.join(", "),
+        summary,
+        jobContext || "",
+      ]
+    );
+
+    // ===============================
+    // RESPONSE
+    // ===============================
+
+    res.status(200).json({
+      name: "Candidat IA",
+      title: level,
+
+      score,
+
+      decision,
+      decisionColor,
+
+      summary,
+
+      yearsExperience,
+
+      skills: detectedSkills,
+
+      requiredSkills,
+
+      matchingSkills,
+
+      missingSkills,
+
+      strengths,
+
+      weaknesses,
+
+      advice,
+
+      statistics: {
+        detectedSkills:
+          detectedSkills.length,
+
+        requiredSkills:
+          requiredSkills.length,
+
+        matchingSkills:
+          matchingSkills.length,
+
+        missingSkills:
+          missingSkills.length,
+
+        yearsExperience,
+      },
+    });
+  } catch (error) {
+    console.log(error);
+
+    res.status(500).json({
+      message:
+        "Erreur serveur analyse CV",
+    });
+  }
+};
+
+// ===============================
+// EXPORTS
+// ===============================
+
+module.exports = {
+  analyzeCV,
+};
