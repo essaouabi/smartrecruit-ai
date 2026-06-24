@@ -42,6 +42,7 @@ import {
   FaServer,
   FaBolt,
   FaClock,
+  FaBell,
 } from "react-icons/fa";
 
 // ======================================================
@@ -88,6 +89,17 @@ type LiveEvent = {
   title: string;
   message: string;
   date: string;
+};
+
+type NotificationItem = {
+  id: number;
+  type: "success" | "error" | "info";
+  title: string;
+  message: string;
+  entity?: string | null;
+  entity_id?: number | null;
+  is_read?: boolean;
+  created_at: string;
 };
 
 // ======================================================
@@ -139,6 +151,8 @@ const RecruiterDashboard = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [liveConnected, setLiveConnected] = useState(false);
 
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+
   const [liveEvents, setLiveEvents] = useState<LiveEvent[]>([
     {
       title: "Dashboard initialisé",
@@ -162,8 +176,26 @@ const RecruiterDashboard = () => {
     }
   };
 
+  const fetchNotifications = async () => {
+    try {
+      const response = await api.get("/notifications");
+
+      const data = Array.isArray(response.data?.data)
+        ? response.data.data
+        : [];
+
+      setNotifications(data);
+    } catch (error) {
+      console.log("Erreur récupération notifications :", error);
+    }
+  };
+
+  const refreshAllData = async () => {
+    await Promise.all([fetchDashboardStats(), fetchNotifications()]);
+  };
+
   useEffect(() => {
-    fetchDashboardStats();
+    refreshAllData();
   }, []);
 
   useEffect(() => {
@@ -179,6 +211,28 @@ const RecruiterDashboard = () => {
         },
         ...prev,
       ]);
+
+      if (payload.data) {
+        setNotifications((prev) => [
+          {
+            id: payload.data.id || Date.now(),
+            type: payload.type || payload.data.type || "info",
+            title: payload.title || payload.data.title || "Notification",
+            message:
+              payload.message ||
+              payload.data.message ||
+              "Nouvelle notification SmartRecruit.",
+            entity: payload.data.entity || null,
+            entity_id: payload.data.entity_id || null,
+            is_read: false,
+            created_at:
+              payload.data.created_at ||
+              payload.date ||
+              new Date().toISOString(),
+          },
+          ...prev,
+        ]);
+      }
 
       fetchDashboardStats();
     };
@@ -246,6 +300,10 @@ const RecruiterDashboard = () => {
     totalCandidates - acceptedCandidates - rejectedCandidates,
     0
   );
+
+  const unreadNotifications = notifications.filter(
+    (notification) => notification.is_read === false
+  ).length;
 
   const decisionData = [
     { name: "Acceptés", value: acceptedCandidates },
@@ -344,7 +402,8 @@ const RecruiterDashboard = () => {
 
               <p className="text-emerald-100 max-w-3xl leading-7">
                 Supervision complète des offres, candidats, analyses IA,
-                décisions RH, monitoring et indicateurs RNCP en temps réel.
+                décisions RH, monitoring, notifications persistantes et
+                indicateurs RNCP en temps réel.
               </p>
             </div>
 
@@ -361,7 +420,8 @@ const RecruiterDashboard = () => {
               </div>
 
               <button
-                onClick={fetchDashboardStats}
+                type="button"
+                onClick={refreshAllData}
                 className="bg-white text-[#064e3b] px-5 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-emerald-50 hover:scale-[1.02] transition-all shadow-xl"
               >
                 <FaSyncAlt className={refreshing ? "animate-spin" : ""} />
@@ -434,9 +494,92 @@ const RecruiterDashboard = () => {
           </motion.div>
         </div>
 
+        {/* NOTIFICATIONS PERSISTANTES */}
+        <div className="bg-white border border-slate-100 rounded-[32px] p-5 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-5">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-emerald-50 text-emerald-700 flex items-center justify-center">
+                <FaBell />
+              </div>
+
+              <div>
+                <h2 className="text-xl font-black text-slate-900">
+                  Notifications persistantes
+                </h2>
+
+                <p className="text-sm text-slate-500">
+                  Notifications sauvegardées dans PostgreSQL et envoyées en
+                  temps réel.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <span className="bg-slate-100 text-slate-700 px-4 py-2 rounded-xl text-sm font-black">
+                Total : {notifications.length}
+              </span>
+
+              <span className="bg-red-50 text-red-700 px-4 py-2 rounded-xl text-sm font-black">
+                Non lues : {unreadNotifications}
+              </span>
+            </div>
+          </div>
+
+          <div className="space-y-3 max-h-[260px] overflow-y-auto">
+            {notifications.length === 0 ? (
+              <div className="bg-slate-50 rounded-[24px] p-5 text-center">
+                <p className="text-slate-500 font-bold">
+                  Aucune notification enregistrée pour le moment.
+                </p>
+              </div>
+            ) : (
+              notifications.slice(0, 5).map((notification) => (
+                <div
+                  key={notification.id}
+                  className={`rounded-[24px] p-4 border ${
+                    notification.is_read
+                      ? "bg-slate-50 border-slate-100"
+                      : "bg-emerald-50 border-emerald-100"
+                  }`}
+                >
+                  <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3">
+                    <div>
+                      <h3 className="font-black text-slate-900">
+                        {notification.title}
+                      </h3>
+
+                      <p className="text-sm text-slate-600 mt-1">
+                        {notification.message}
+                      </p>
+
+                      <p className="text-xs text-slate-400 mt-2">
+                        {new Date(notification.created_at).toLocaleString(
+                          "fr-FR"
+                        )}
+                      </p>
+                    </div>
+
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-black ${
+                        notification.type === "success"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : notification.type === "error"
+                          ? "bg-red-100 text-red-700"
+                          : "bg-blue-100 text-blue-700"
+                      }`}
+                    >
+                      {notification.type}
+                    </span>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
         {/* GRAPHIQUES */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-          <div className="xl:col-span-2 bg-white border border-slate-100 rounded-[32px] p-5 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all">
+          <div className="xl:col-span-2 bg-white border border-slate-100 rounded-[32px] p-5 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all min-w-0">
             <div className="flex justify-between items-start mb-5">
               <div>
                 <h2 className="text-xl font-black text-slate-900">
@@ -453,7 +596,7 @@ const RecruiterDashboard = () => {
               </span>
             </div>
 
-            <div className="h-[280px]">
+            <div className="w-full h-[280px] min-w-0">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={trendData}>
                   <defs>
@@ -494,7 +637,7 @@ const RecruiterDashboard = () => {
             </div>
           </div>
 
-          <div className="bg-white border border-slate-100 rounded-[32px] p-5 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all">
+          <div className="bg-white border border-slate-100 rounded-[32px] p-5 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all min-w-0">
             <h2 className="text-xl font-black text-slate-900">
               Répartition IA
             </h2>
@@ -503,7 +646,7 @@ const RecruiterDashboard = () => {
               Acceptés, refusés et profils à revoir.
             </p>
 
-            <div className="h-[280px]">
+            <div className="w-full h-[280px] min-w-0">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -532,7 +675,7 @@ const RecruiterDashboard = () => {
 
         {/* SCORE + LISTES */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-          <div className="bg-white border border-slate-100 rounded-[32px] p-5 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all">
+          <div className="bg-white border border-slate-100 rounded-[32px] p-5 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all min-w-0">
             <h2 className="text-xl font-black text-slate-900 mb-1">
               Analyse des scores
             </h2>
@@ -541,7 +684,7 @@ const RecruiterDashboard = () => {
               Score min, moyen et max.
             </p>
 
-            <div className="h-[245px]">
+            <div className="w-full h-[245px] min-w-0">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={scoreData}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />

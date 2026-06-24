@@ -5,6 +5,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 
+import api from "../services/api";
 import socket from "../services/socket";
 import logoSmartRecruit from "../assets/logo-smartrecruit.png";
 
@@ -23,7 +24,6 @@ import {
   FaWifi,
   FaCheckCircle,
   FaExclamationTriangle,
-  FaTimes,
   FaCircle,
   FaHistory,
 } from "react-icons/fa";
@@ -32,11 +32,15 @@ interface Props {
   children: ReactNode;
 }
 
+type NotificationType = "success" | "error" | "info";
+
 type NotificationItem = {
-  type: "success" | "error" | "info";
+  id?: number;
+  type: NotificationType;
   title: string;
   message: string;
   date: string;
+  is_read?: boolean;
 };
 
 const DashboardLayout = ({ children }: Props) => {
@@ -44,21 +48,7 @@ const DashboardLayout = ({ children }: Props) => {
 
   const [showNotifications, setShowNotifications] = useState(false);
   const [isRealtimeConnected, setIsRealtimeConnected] = useState(false);
-
-  const [notifications, setNotifications] = useState<NotificationItem[]>([
-    {
-      type: "success",
-      title: "Monitoring actif",
-      message: "Les logs backend sont actuellement surveillés.",
-      date: new Date().toISOString(),
-    },
-    {
-      type: "info",
-      title: "Pipeline de données prêt",
-      message: "Import CSV et stockage PostgreSQL opérationnels.",
-      date: new Date().toISOString(),
-    },
-  ]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const role = user?.role || "candidate";
@@ -142,7 +132,71 @@ const DashboardLayout = ({ children }: Props) => {
     year: "numeric",
   });
 
+  const normalizeNotificationType = (type: any): NotificationType => {
+    if (type === "success" || type === "error" || type === "info") {
+      return type;
+    }
+
+    return "info";
+  };
+
+  const fetchNotifications = async () => {
+    try {
+      const response = await api.get("/notifications");
+
+      const data = Array.isArray(response.data?.data)
+        ? response.data.data
+        : [];
+
+      const formattedNotifications: NotificationItem[] = data.map(
+        (notification: any) => ({
+          id: notification.id,
+          type: normalizeNotificationType(notification.type),
+          title: notification.title || "Notification",
+          message:
+            notification.message || "Nouvel événement SmartRecruit AI.",
+          date:
+            notification.created_at ||
+            notification.date ||
+            new Date().toISOString(),
+          is_read: notification.is_read ?? false,
+        })
+      );
+
+      setNotifications(formattedNotifications);
+    } catch (error) {
+      console.error("Erreur chargement notifications :", error);
+    }
+  };
+
+  const markAllNotificationsAsRead = async () => {
+    try {
+      await api.patch("/notifications/read-all");
+
+      setNotifications((prev) =>
+        prev.map((notification) => ({
+          ...notification,
+          is_read: true,
+        }))
+      );
+    } catch (error) {
+      console.error("Erreur mise à jour notifications :", error);
+    }
+  };
+
+  const handleToggleNotifications = () => {
+    const nextValue = !showNotifications;
+
+    setShowNotifications(nextValue);
+
+    if (nextValue) {
+      markAllNotificationsAsRead();
+    }
+  };
+
   useEffect(() => {
+    fetchNotifications();
+
     const handleConnect = () => {
       setIsRealtimeConnected(true);
     };
@@ -151,33 +205,29 @@ const DashboardLayout = ({ children }: Props) => {
       setIsRealtimeConnected(false);
     };
 
-    const handleNotification = (payload: NotificationItem) => {
-      setNotifications((prev) => [
-        {
-          type: payload.type || "info",
-          title: payload.title || "Notification",
-          message: payload.message || "Nouvel événement SmartRecruit.",
-          date: payload.date || new Date().toISOString(),
-        },
-        ...prev,
-      ]);
-    };
+    const handleNotification = (payload: any) => {
+      const notification: NotificationItem = {
+        id: payload.data?.id || Date.now(),
+        type: normalizeNotificationType(payload.type || payload.data?.type),
+        title: payload.title || payload.data?.title || "Notification",
+        message:
+          payload.message ||
+          payload.data?.message ||
+          "Nouvel événement SmartRecruit AI.",
+        date:
+          payload.date ||
+          payload.data?.created_at ||
+          new Date().toISOString(),
+        is_read: false,
+      };
 
-    const handleMonitoringLog = (payload: any) => {
-      setNotifications((prev) => [
-        {
-          type: "info",
-          title: "Log backend",
-          message: payload.message || "Nouvelle activité backend détectée.",
-          date: payload.date || new Date().toISOString(),
-        },
-        ...prev,
-      ]);
+      setNotifications((prev) => [notification, ...prev]);
     };
 
     const handleAuditLog = (payload: any) => {
       setNotifications((prev) => [
         {
+          id: Date.now(),
           type: "info",
           title: "Audit log",
           message:
@@ -185,6 +235,7 @@ const DashboardLayout = ({ children }: Props) => {
             payload.action ||
             "Nouvelle action enregistrée dans l’audit.",
           date: payload.date || new Date().toISOString(),
+          is_read: false,
         },
         ...prev,
       ]);
@@ -193,7 +244,6 @@ const DashboardLayout = ({ children }: Props) => {
     socket.on("connect", handleConnect);
     socket.on("disconnect", handleDisconnect);
     socket.on("notification", handleNotification);
-    socket.on("monitoring-log", handleMonitoringLog);
     socket.on("audit-log", handleAuditLog);
 
     if (socket.connected) {
@@ -204,7 +254,6 @@ const DashboardLayout = ({ children }: Props) => {
       socket.off("connect", handleConnect);
       socket.off("disconnect", handleDisconnect);
       socket.off("notification", handleNotification);
-      socket.off("monitoring-log", handleMonitoringLog);
       socket.off("audit-log", handleAuditLog);
     };
   }, []);
@@ -213,10 +262,6 @@ const DashboardLayout = ({ children }: Props) => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
     navigate("/login");
-  };
-
-  const clearNotifications = () => {
-    setNotifications([]);
   };
 
   const getNotificationStyle = (type: NotificationItem["type"]) => {
@@ -242,6 +287,10 @@ const DashboardLayout = ({ children }: Props) => {
       iconComponent: <FaWifi />,
     };
   };
+
+  const unreadCount = notifications.filter(
+    (notification) => notification.is_read === false
+  ).length;
 
   return (
     <div className="flex min-h-screen bg-[#f6f8fb] text-slate-900">
@@ -386,20 +435,20 @@ const DashboardLayout = ({ children }: Props) => {
             <div className="relative">
               <button
                 type="button"
-                onClick={() => setShowNotifications(!showNotifications)}
+                onClick={handleToggleNotifications}
                 className="relative w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 hover:scale-[1.02] transition-all shadow-sm"
               >
                 <FaBell className="text-[#064e3b]" />
 
-                {notifications.length > 0 && (
+                {unreadCount > 0 && (
                   <span className="absolute -top-1 -right-1 min-w-[20px] h-[20px] px-1 bg-red-500 text-white text-[10px] font-black rounded-full flex items-center justify-center">
-                    {notifications.length > 9 ? "9+" : notifications.length}
+                    {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
                 )}
               </button>
 
               {showNotifications && (
-                <div className="absolute right-0 mt-4 w-[390px] bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200 p-5 z-50">
+                <div className="absolute right-0 mt-4 w-[420px] bg-white/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-slate-200 p-5 z-50">
                   <div className="flex justify-between items-start mb-5">
                     <div>
                       <h3 className="text-lg font-black text-slate-900">
@@ -407,16 +456,17 @@ const DashboardLayout = ({ children }: Props) => {
                       </h3>
 
                       <p className="text-xs text-slate-500 mt-1">
-                        Événements temps réel
+                        Notifications PostgreSQL + temps réel
                       </p>
                     </div>
 
                     <button
                       type="button"
-                      onClick={clearNotifications}
-                      className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-600 flex items-center justify-center transition-all"
+                      onClick={markAllNotificationsAsRead}
+                      className="px-3 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-700 flex items-center gap-2 text-xs font-black transition-all"
                     >
-                      <FaTimes />
+                      <FaCheckCircle />
+                      Tout lu
                     </button>
                   </div>
 
@@ -433,8 +483,12 @@ const DashboardLayout = ({ children }: Props) => {
 
                         return (
                           <div
-                            key={index}
-                            className={`${style.box} rounded-xl p-4 border shadow-sm hover:scale-[1.02] transition-all`}
+                            key={notification.id || index}
+                            className={`${style.box} rounded-xl p-4 border shadow-sm hover:scale-[1.02] transition-all ${
+                              notification.is_read
+                                ? "opacity-70"
+                                : "ring-1 ring-emerald-100"
+                            }`}
                           >
                             <div className="flex gap-3">
                               <div
@@ -444,9 +498,17 @@ const DashboardLayout = ({ children }: Props) => {
                               </div>
 
                               <div className="flex-1">
-                                <p className="font-bold text-slate-900">
-                                  {notification.title}
-                                </p>
+                                <div className="flex items-center justify-between gap-3">
+                                  <p className="font-bold text-slate-900">
+                                    {notification.title}
+                                  </p>
+
+                                  {!notification.is_read && (
+                                    <span className="bg-red-500 text-white text-[10px] px-2 py-1 rounded-full font-black">
+                                      Nouveau
+                                    </span>
+                                  )}
+                                </div>
 
                                 <p className="text-sm text-slate-600 mt-1 line-clamp-2">
                                   {notification.message}

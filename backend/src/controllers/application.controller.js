@@ -1,5 +1,6 @@
 const pool = require("../config/db");
 const { logAudit } = require("../services/auditLog.service");
+const { createNotification } = require("../services/notification.service");
 
 // =====================================================
 // CANDIDAT : POSTULER À UNE OFFRE
@@ -187,6 +188,20 @@ Score IA final : ${aiScore}%
     );
 
     const application = result.rows[0];
+
+    // =====================================================
+    // ÉTAPE 2 : NOTIFICATION DE CRÉATION DE CANDIDATURE
+    // =====================================================
+    await createNotification({
+      req,
+      userId: candidateId,
+      userRole: req.user?.role || "candidate",
+      type: "success",
+      title: "Nouvelle candidature",
+      message: `Une nouvelle candidature a été envoyée pour l'offre ${job.title}.`,
+      entity: "applications",
+      entityId: application.id,
+    });
 
     // =====================================================
     // AUDIT LOG : CANDIDATURE CRÉÉE
@@ -404,6 +419,20 @@ const updateApplicationStatus = async (req, res) => {
     );
 
     const updatedApplication = result.rows[0];
+
+    // =====================================================
+    // ÉTAPE 3 : NOTIFICATION DE CHANGEMENT DE STATUT
+    // =====================================================
+    await createNotification({
+      req,
+      userId: req.user?.id || req.user?.userId || null,
+      userRole: req.user?.role || "recruiter",
+      type: "info",
+      title: "Statut de candidature modifié",
+      message: `Le statut de la candidature #${id} a été modifié en ${status}.`,
+      entity: "applications",
+      entityId: Number(id),
+    });
 
     // =====================================================
     // AUDIT LOG : STATUT CANDIDATURE MODIFIÉ

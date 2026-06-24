@@ -38,6 +38,7 @@ const dataRoutes = require("./routes/data.routes");
 const applicationRoutes = require("./routes/application.routes");
 const scrapingRoutes = require("./routes/scraping.routes");
 const auditRoutes = require("./routes/audit.routes");
+const notificationRoutes = require("./routes/notification.routes");
 
 // =====================================================
 // SERVICES
@@ -45,6 +46,7 @@ const auditRoutes = require("./routes/audit.routes");
 
 const logger = require("./services/logger.service");
 const { logAudit } = require("./services/auditLog.service");
+const { createNotification } = require("./services/notification.service");
 
 // =====================================================
 // CRÉATION DE L'APPLICATION EXPRESS
@@ -65,18 +67,8 @@ const server = http.createServer(app);
 const corsOptions = {
   origin: "http://localhost:5173",
   credentials: true,
-  methods: [
-    "GET",
-    "POST",
-    "PUT",
-    "PATCH",
-    "DELETE",
-    "OPTIONS",
-  ],
-  allowedHeaders: [
-    "Content-Type",
-    "Authorization",
-  ],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 };
 
 // =====================================================
@@ -87,7 +79,7 @@ const io = new Server(server, {
   cors: corsOptions,
 });
 
-// Permettre aux contrôleurs d'utiliser Socket.IO
+// Permettre aux contrôleurs et services d'utiliser Socket.IO
 app.set("io", io);
 
 // Gestion des connexions temps réel
@@ -152,6 +144,7 @@ app.get("/", (req, res) => {
     dataPipeline: "enabled",
     realtime: "enabled",
     auditLogs: "enabled",
+    notifications: "enabled",
   });
 });
 
@@ -170,6 +163,7 @@ app.use("/api/monitoring", monitoringRoutes);
 app.use("/api/applications", applicationRoutes);
 app.use("/api/scraping", scrapingRoutes);
 app.use("/api/audit", auditRoutes);
+app.use("/api/notifications", notificationRoutes);
 
 // =====================================================
 // GESTION DES ROUTES INEXISTANTES
@@ -206,12 +200,16 @@ app.use((err, req, res, _next) => {
     description: `${req.method} ${req.originalUrl} - ${err.message}`,
   });
 
-  io.emit("notification", {
+  // Création d'une notification persistante en base PostgreSQL
+  createNotification({
+    req,
+    userId: req.user?.id || req.user?.userId || null,
+    userRole: req.user?.role || null,
     type: "error",
     title: "Erreur backend détectée",
-    message: err.message,
-    route: req.originalUrl,
-    date: new Date().toISOString(),
+    message: err.message || "Une erreur serveur a été détectée.",
+    entity: "server",
+    entityId: null,
   });
 
   res.status(500).json({
@@ -240,6 +238,7 @@ const startServer = async () => {
       console.log(`Server running on port ${PORT}`);
       console.log("Socket.io realtime enabled");
       console.log("Audit logs enabled");
+      console.log("Notifications enabled");
       console.log(`Swagger API Docs: http://localhost:${PORT}/api-docs`);
     });
   } catch (error) {
