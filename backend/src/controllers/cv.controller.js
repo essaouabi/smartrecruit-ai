@@ -65,6 +65,116 @@ const detectLevel = (score) => {
 };
 
 // ===============================
+// DETECT CANDIDATE NAME
+// ===============================
+
+const detectCandidateName = (cvText) => {
+  const lines = cvText
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0);
+
+  const forbiddenWords = [
+    "cv",
+    "curriculum",
+    "vitae",
+    "profil",
+    "profile",
+    "contact",
+    "email",
+    "mail",
+    "téléphone",
+    "telephone",
+    "phone",
+    "adresse",
+    "address",
+    "compétences",
+    "competences",
+    "skills",
+    "expérience",
+    "experience",
+    "formation",
+    "education",
+    "centre",
+    "intérêt",
+    "interet",
+    "loisirs",
+    "hobbies",
+    "projet",
+    "projects",
+    "langues",
+    "languages",
+  ];
+
+  const emailRegex =
+    /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-z]{2,}/i;
+
+  const phoneRegex =
+    /(\+?\d[\d\s().-]{7,})/;
+
+  for (const line of lines.slice(0, 15)) {
+    const lowerLine = line.toLowerCase();
+
+    const hasForbiddenWord = forbiddenWords.some((word) =>
+      lowerLine.includes(word)
+    );
+
+    const looksLikeEmail = emailRegex.test(line);
+    const looksLikePhone = phoneRegex.test(line);
+    const hasNumber = /\d/.test(line);
+
+    const words = line
+      .split(/\s+/)
+      .filter((word) => word.length > 1);
+
+    const isNameLength =
+      words.length >= 2 &&
+      words.length <= 4 &&
+      line.length <= 45;
+
+    const looksLikeName =
+      /^[A-Za-zÀ-ÖØ-öø-ÿ' -]+$/.test(line);
+
+    if (
+      isNameLength &&
+      looksLikeName &&
+      !hasForbiddenWord &&
+      !looksLikeEmail &&
+      !looksLikePhone &&
+      !hasNumber
+    ) {
+      return line;
+    }
+  }
+
+  return "Candidat IA";
+};
+
+// ===============================
+// DETECT EMAIL
+// ===============================
+
+const detectEmail = (cvText) => {
+  const match = cvText.match(
+    /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-z]{2,}/i
+  );
+
+  return match ? match[0] : "";
+};
+
+// ===============================
+// DETECT PHONE
+// ===============================
+
+const detectPhone = (cvText) => {
+  const match = cvText.match(
+    /(\+?\d[\d\s().-]{7,})/
+  );
+
+  return match ? match[0].trim() : "";
+};
+
+// ===============================
 // ANALYZE CV
 // ===============================
 
@@ -83,6 +193,14 @@ const analyzeCV = async (req, res) => {
     const jobLower = jobContext
       ? jobContext.toLowerCase()
       : "";
+
+    // ===============================
+    // DETECT BASIC INFO
+    // ===============================
+
+    const candidateName = detectCandidateName(cvText);
+    const candidateEmail = detectEmail(cvText);
+    const candidatePhone = detectPhone(cvText);
 
     // ===============================
     // DETECT SKILLS
@@ -320,6 +438,8 @@ Le score IA global est de ${score}%.
       (
         name,
         title,
+        email,
+        phone,
         score,
         skills,
         missing_skills,
@@ -327,11 +447,13 @@ Le score IA global est de ${score}%.
         job_context
       )
       VALUES
-      ($1, $2, $3, $4, $5, $6, $7)
+      ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       `,
       [
-        "Candidat IA",
+        candidateName,
         level,
+        candidateEmail,
+        candidatePhone,
         score,
         detectedSkills.join(", "),
         missingSkills.join(", "),
@@ -345,8 +467,10 @@ Le score IA global est de ${score}%.
     // ===============================
 
     res.status(200).json({
-      name: "Candidat IA",
+      name: candidateName,
       title: level,
+      email: candidateEmail,
+      phone: candidatePhone,
 
       score,
 

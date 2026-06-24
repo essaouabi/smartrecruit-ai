@@ -1,12 +1,6 @@
 // ======================================================
 // ROUTES ASSISTANT IA - SMARTRECRUIT AI
 // ======================================================
-// Ces routes permettent :
-// - communiquer avec l'assistant IA ;
-// - poser des questions ;
-// - obtenir des réponses intelligentes ;
-// - exploiter les capacités IA du système.
-// ======================================================
 
 
 // ======================================================
@@ -17,23 +11,24 @@ const express = require("express");
 
 
 // ======================================================
-// INITIALISATION DU ROUTER
+// INITIALISATION ROUTER
 // ======================================================
 
 const router = express.Router();
 
 
 // ======================================================
-// IMPORT DU CONTRÔLEUR IA
+// IMPORT CONTROLLERS
 // ======================================================
 
 const {
   askAI,
+  matchCVWithJob,
 } = require("../controllers/ai.controller");
 
 
 // ======================================================
-// DOCUMENTATION SWAGGER - IA
+// SWAGGER TAG
 // ======================================================
 
 /**
@@ -44,12 +39,15 @@ const {
  */
 
 
+// ======================================================
+// ASK AI
+// ======================================================
+
 /**
  * @swagger
  * /api/ai/ask:
  *   post:
  *     summary: Interroger l'assistant IA
- *     description: Cette route permet d'envoyer une question à l'assistant IA et de recevoir une réponse générée automatiquement.
  *     tags: [Artificial Intelligence]
  *     requestBody:
  *       required: true
@@ -57,19 +55,13 @@ const {
  *         application/json:
  *           schema:
  *             type: object
- *             required:
- *               - question
  *             properties:
  *               question:
  *                 type: string
- *                 example: Analyse les compétences d'un développeur Full Stack.
+ *                 example: Analyse les compétences d'un développeur Full Stack
  *     responses:
  *       200:
  *         description: Réponse générée par l'IA
- *       400:
- *         description: Question invalide
- *       500:
- *         description: Erreur serveur
  */
 
 router.post(
@@ -79,7 +71,57 @@ router.post(
 
 
 // ======================================================
-// EXPORT DU ROUTER
+// MATCH CV ↔ JOB
+// ======================================================
+
+/**
+ * @swagger
+ * /api/ai/match-cv-job:
+ *   post:
+ *     summary: Comparer un CV avec une offre d'emploi
+ *     description: Analyse IA de compatibilité entre un CV et un poste.
+ *     tags: [Artificial Intelligence]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - cvText
+ *               - jobDescription
+ *             properties:
+ *               jobTitle:
+ *                 type: string
+ *                 example: Développeur Full Stack React Node.js
+ *
+ *               cvText:
+ *                 type: string
+ *                 example: Développeur React avec 3 ans d'expérience...
+ *
+ *               jobDescription:
+ *                 type: string
+ *                 example: Nous recherchons un développeur React Node.js...
+ *
+ *     responses:
+ *       200:
+ *         description: Analyse terminée
+ *
+ *       400:
+ *         description: Données invalides
+ *
+ *       500:
+ *         description: Erreur serveur
+ */
+
+router.post(
+  "/match-cv-job",
+  matchCVWithJob
+);
+
+
+// ======================================================
+// EXPORT
 // ======================================================
 
 module.exports = router;

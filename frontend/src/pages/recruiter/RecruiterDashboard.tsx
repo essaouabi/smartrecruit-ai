@@ -1,11 +1,15 @@
-// ===============================
-// IMPORTS
-// ===============================
+// ======================================================
+// DASHBOARD RECRUTEUR - SMARTRECRUIT AI
+// Design SaaS Premium 2026
+// ======================================================
 
 import { useEffect, useState } from "react";
+
 import DashboardLayout from "../../layouts/DashboardLayout";
+
 import api from "../../services/api";
 import socket from "../../services/socket";
+
 import { motion } from "framer-motion";
 
 import {
@@ -27,37 +31,57 @@ import {
   FaBriefcase,
   FaUsers,
   FaRobot,
-  FaCalendarCheck,
+  FaFileAlt,
+  FaUserCheck,
+  FaUserTimes,
+  FaWifi,
+  FaSyncAlt,
   FaDatabase,
+  FaShieldAlt,
   FaCode,
   FaServer,
-  FaCheckCircle,
-  FaClock,
-  FaChartLine,
   FaBolt,
-  FaShieldAlt,
-  FaWifi,
+  FaClock,
 } from "react-icons/fa";
 
-// ===============================
+// ======================================================
 // TYPES
-// ===============================
+// ======================================================
 
 type Job = {
   id: number;
   title: string;
-  description: string;
-  company: string;
-  location: string;
-  created_at: string;
+  description?: string;
+  company?: string;
+  location?: string;
 };
 
-type DashboardStats = {
+type Candidate = {
+  id: number;
+  fullname?: string;
+  name?: string;
+  email?: string;
+  score?: number;
+  decision?: string;
+};
+
+type DashboardStatsData = {
   totalJobs: number;
   totalCandidates: number;
+  totalAnalyses: number;
   averageScore: number;
-  interviews: number;
+  maxScore: number;
+  minScore: number;
+  acceptedCandidates: number;
+  rejectedCandidates: number;
+};
+
+type DashboardResponse = {
+  success: boolean;
+  stats: DashboardStatsData;
   latestJobs: Job[];
+  topCandidates: Candidate[];
+  latestCandidates: Candidate[];
 };
 
 type LiveEvent = {
@@ -66,114 +90,90 @@ type LiveEvent = {
   date: string;
 };
 
-// ===============================
-// COLORS
-// ===============================
+// ======================================================
+// CONSTANTES UI
+// ======================================================
 
-const pieColors = [
-  "#0b3d2e",
-  "#16a34a",
-  "#2563eb",
-  "#f97316",
-];
-
-// ===============================
-// RNCP BLOCS
-// ===============================
+const decisionColors = ["#10b981", "#ef4444", "#2563eb"];
 
 const rncpBlocs = [
   {
     id: "E1",
     title: "Data Engineering",
-    description: "Import CSV, nettoyage, validation, PostgreSQL et historique.",
     icon: <FaDatabase />,
-    status: "Acquis",
     progress: 95,
   },
   {
-    id: "E3",
-    title: "Intelligence Artificielle",
-    description: "Gemini API, analyse CV, matching candidat/offre et score IA.",
+    id: "E2",
+    title: "Service IA",
     icon: <FaRobot />,
-    status: "Acquis",
     progress: 90,
   },
   {
-    id: "E4",
-    title: "Application Fullstack",
-    description: "React, Node.js, Express, JWT, dashboard RH et API REST.",
+    id: "E3",
+    title: "Développement IA",
     icon: <FaCode />,
-    status: "Acquis",
     progress: 92,
   },
   {
-    id: "E5",
-    title: "Monitoring & Incidents",
-    description: "Logs Winston, supervision, incidents Gemini et fallback.",
+    id: "E4",
+    title: "Full Stack",
     icon: <FaServer />,
-    status: "En cours",
-    progress: 80,
+    progress: 94,
+  },
+  {
+    id: "E5",
+    title: "DevOps",
+    icon: <FaShieldAlt />,
+    progress: 90,
   },
 ];
 
-// ===============================
-// COMPONENT
-// ===============================
+// ======================================================
+// COMPOSANT PRINCIPAL
+// ======================================================
 
 const RecruiterDashboard = () => {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [dashboard, setDashboard] = useState<DashboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [liveConnected, setLiveConnected] = useState(false);
 
   const [liveEvents, setLiveEvents] = useState<LiveEvent[]>([
     {
       title: "Dashboard initialisé",
-      message: "SmartRecruit AI est prêt.",
+      message: "SmartRecruit AI est prêt à superviser les données RH.",
       date: new Date().toISOString(),
     },
   ]);
 
-  // ===============================
-  // FETCH STATS
-  // ===============================
-
   const fetchDashboardStats = async () => {
     try {
+      setRefreshing(true);
+
       const response = await api.get("/dashboard/stats");
-      setStats(response.data);
-    } catch (error: any) {
+      setDashboard(response.data);
+    } catch (error) {
       console.log(error);
-      alert("Erreur récupération dashboard");
+      alert("Erreur lors de la récupération du dashboard.");
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
-
-  // ===============================
-  // LOAD DATA
-  // ===============================
 
   useEffect(() => {
     fetchDashboardStats();
   }, []);
 
-  // ===============================
-  // SOCKET REALTIME
-  // ===============================
-
   useEffect(() => {
-    const handleConnect = () => {
-      setLiveConnected(true);
-    };
-
-    const handleDisconnect = () => {
-      setLiveConnected(false);
-    };
+    const handleConnect = () => setLiveConnected(true);
+    const handleDisconnect = () => setLiveConnected(false);
 
     const handleNotification = (payload: any) => {
       setLiveEvents((prev) => [
         {
-          title: payload.title || "Événement realtime",
+          title: payload.title || "Notification",
           message: payload.message || "Nouvelle activité détectée.",
           date: payload.date || new Date().toISOString(),
         },
@@ -211,18 +211,14 @@ const RecruiterDashboard = () => {
     };
   }, []);
 
-  // ===============================
-  // LOADING
-  // ===============================
-
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="min-h-[500px] flex items-center justify-center">
-          <div className="bg-white rounded-[32px] p-10 shadow-xl text-center">
-            <FaRobot className="text-5xl text-[#0b3d2e] mx-auto mb-5 animate-pulse" />
+        <div className="min-h-[420px] flex items-center justify-center">
+          <div className="bg-white border border-slate-100 rounded-[32px] p-10 shadow-xl text-center">
+            <FaRobot className="text-5xl text-emerald-700 mx-auto mb-4 animate-pulse" />
 
-            <p className="text-gray-500 font-semibold">
+            <p className="text-slate-500 font-bold">
               Chargement du dashboard intelligent...
             </p>
           </div>
@@ -231,520 +227,523 @@ const RecruiterDashboard = () => {
     );
   }
 
-  // ===============================
-  // DATA
-  // ===============================
+  const stats = dashboard?.stats;
 
   const totalJobs = stats?.totalJobs || 0;
   const totalCandidates = stats?.totalCandidates || 0;
+  const totalAnalyses = stats?.totalAnalyses || 0;
   const averageScore = stats?.averageScore || 0;
-  const interviews = stats?.interviews || 0;
-  const latestJobs = stats?.latestJobs || [];
+  const maxScore = stats?.maxScore || 0;
+  const minScore = stats?.minScore || 0;
+  const acceptedCandidates = stats?.acceptedCandidates || 0;
+  const rejectedCandidates = stats?.rejectedCandidates || 0;
 
-  const growthData = [
-    { name: "S1", value: totalJobs },
-    { name: "S2", value: totalJobs + totalCandidates },
-    { name: "S3", value: totalJobs + totalCandidates + averageScore },
-    {
-      name: "S4",
-      value: totalJobs + totalCandidates + averageScore + interviews,
-    },
+  const latestJobs = dashboard?.latestJobs || [];
+  const topCandidates = dashboard?.topCandidates || [];
+  const latestCandidates = dashboard?.latestCandidates || [];
+
+  const pendingCandidates = Math.max(
+    totalCandidates - acceptedCandidates - rejectedCandidates,
+    0
+  );
+
+  const decisionData = [
+    { name: "Acceptés", value: acceptedCandidates },
+    { name: "Refusés", value: rejectedCandidates },
+    { name: "À revoir", value: pendingCandidates },
   ];
 
-  const barData = latestJobs.map((_job, index) => ({
-    name: `Offre ${index + 1}`,
-    offres: index + 1,
-  }));
+  const scoreData = [
+    { name: "Min", score: minScore },
+    { name: "Moyen", score: averageScore },
+    { name: "Max", score: maxScore },
+  ];
 
-  const pieData = [
+  const trendData = [
     { name: "Offres", value: totalJobs },
     { name: "Candidats", value: totalCandidates },
-    { name: "Entretiens", value: interviews },
-    { name: "Score IA", value: averageScore },
+    { name: "Analyses", value: totalAnalyses },
+    { name: "Acceptés", value: acceptedCandidates },
   ];
-
-  const uniqueSkills = Array.from(
-    new Set(
-      latestJobs
-        .flatMap((job) =>
-          job.description ? job.description.split(" ") : []
-        )
-        .filter((skill) => skill.trim() !== "")
-    )
-  ).slice(0, 16);
 
   const statsCards = [
     {
       label: "Candidats",
       value: totalCandidates,
-      note: "CV analysés",
+      description: "Profils enregistrés",
       icon: <FaUsers />,
-      gradient: "from-emerald-500 via-green-500 to-lime-400",
+      iconBox: "bg-emerald-50 text-emerald-700",
     },
     {
-      label: "Offres actives",
+      label: "Offres",
       value: totalJobs,
-      note: "Stockées PostgreSQL",
+      description: "Offres publiées",
       icon: <FaBriefcase />,
-      gradient: "from-[#062c22] via-[#0b3d2e] to-emerald-500",
+      iconBox: "bg-blue-50 text-blue-700",
     },
     {
-      label: "Score IA",
+      label: "Analyses IA",
+      value: totalAnalyses,
+      description: "CV analysés",
+      icon: <FaFileAlt />,
+      iconBox: "bg-purple-50 text-purple-700",
+    },
+    {
+      label: "Score moyen",
       value: `${averageScore}%`,
-      note: "Matching moyen",
+      description: "Matching moyen",
       icon: <FaRobot />,
-      gradient: "from-blue-700 via-sky-500 to-cyan-400",
+      iconBox: "bg-orange-50 text-orange-700",
+    },
+  ];
+
+  const miniStats = [
+    {
+      label: "Acceptés",
+      value: acceptedCandidates,
+      icon: <FaUserCheck />,
+      color: "text-emerald-700",
     },
     {
-      label: "Entretiens",
-      value: interviews,
-      note: "Planifiés",
-      icon: <FaCalendarCheck />,
-      gradient: "from-purple-700 via-fuchsia-500 to-pink-400",
+      label: "Refusés",
+      value: rejectedCandidates,
+      icon: <FaUserTimes />,
+      color: "text-red-700",
+    },
+    {
+      label: "À revoir",
+      value: pendingCandidates,
+      icon: <FaClock />,
+      color: "text-blue-700",
     },
   ];
 
   return (
     <DashboardLayout>
-      {/* HERO */}
+      <div className="space-y-6">
+        {/* HERO PREMIUM */}
+        <motion.div
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45 }}
+          className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-[#031d16] via-[#062c22] to-[#0b3d2e] p-7 text-white shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all"
+        >
+          <div className="absolute right-[-80px] top-[-80px] w-72 h-72 bg-emerald-400/20 rounded-full blur-3xl" />
+          <div className="absolute left-[-70px] bottom-[-70px] w-56 h-56 bg-cyan-400/10 rounded-full blur-3xl" />
 
-      <motion.div
-        initial={{ opacity: 0, y: 35 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7 }}
-        className="relative overflow-hidden rounded-[40px] bg-gradient-to-br from-[#031d16] via-[#062c22] to-[#0b3d2e] p-12 mb-10 text-white shadow-[0_30px_80px_rgba(0,0,0,0.25)]"
-      >
-        <div className="absolute right-[-120px] top-[-120px] w-[360px] h-[360px] bg-green-400/20 rounded-full blur-3xl"></div>
-
-        <div className="relative z-10 grid grid-cols-2 gap-10 items-center">
-          <div>
-            <div className="inline-flex items-center gap-3 bg-white/10 border border-white/10 px-5 py-3 rounded-full mb-6">
-              <FaBolt className="text-green-300" />
-
-              <span className="text-green-100 font-semibold">
+          <div className="relative z-10 flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6">
+            <div>
+              <div className="inline-flex items-center gap-2 bg-white/10 border border-white/10 rounded-full px-4 py-2 text-emerald-200 font-black text-sm mb-4 backdrop-blur-xl">
+                <FaBolt />
                 SmartRecruit Intelligence
+              </div>
+
+              <h1 className="text-4xl font-black mb-3">
+                Tableau de bord recrutement IA
+              </h1>
+
+              <p className="text-emerald-100 max-w-3xl leading-7">
+                Supervision complète des offres, candidats, analyses IA,
+                décisions RH, monitoring et indicateurs RNCP en temps réel.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div
+                className={`px-4 py-3 rounded-2xl border font-black flex items-center gap-2 backdrop-blur-xl ${
+                  liveConnected
+                    ? "bg-emerald-400/10 text-emerald-200 border-emerald-400/20"
+                    : "bg-orange-400/10 text-orange-200 border-orange-400/20"
+                }`}
+              >
+                <FaWifi />
+                {liveConnected ? "Realtime actif" : "Mode local"}
+              </div>
+
+              <button
+                onClick={fetchDashboardStats}
+                className="bg-white text-[#064e3b] px-5 py-3 rounded-2xl font-black flex items-center gap-2 hover:bg-emerald-50 hover:scale-[1.02] transition-all shadow-xl"
+              >
+                <FaSyncAlt className={refreshing ? "animate-spin" : ""} />
+                Actualiser
+              </button>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* KPI PRINCIPAUX */}
+        <div className="grid grid-cols-1 xl:grid-cols-5 gap-5">
+          <div className="xl:col-span-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+            {statsCards.map((card, index) => (
+              <motion.div
+                key={card.label}
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.06 }}
+                className="bg-white border border-slate-100 rounded-[32px] p-5 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all"
+              >
+                <div
+                  className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl mb-5 ${card.iconBox}`}
+                >
+                  {card.icon}
+                </div>
+
+                <p className="text-sm text-slate-500">{card.label}</p>
+
+                <h2 className="text-4xl font-black text-slate-900 mt-1">
+                  {card.value}
+                </h2>
+
+                <p className="text-xs text-slate-400 mt-2">
+                  {card.description}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25 }}
+            className="bg-white border border-slate-100 rounded-[32px] p-5 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all"
+          >
+            <p className="text-sm font-black text-slate-900 mb-3">
+              Décisions IA
+            </p>
+
+            <div className="space-y-3">
+              {miniStats.map((item) => (
+                <div
+                  key={item.label}
+                  className="flex items-center justify-between bg-slate-50 rounded-[24px] p-3"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className={item.color}>{item.icon}</span>
+
+                    <span className="text-sm font-bold text-slate-600">
+                      {item.label}
+                    </span>
+                  </div>
+
+                  <span className="font-black text-slate-900">
+                    {item.value}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+
+        {/* GRAPHIQUES */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+          <div className="xl:col-span-2 bg-white border border-slate-100 rounded-[32px] p-5 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all">
+            <div className="flex justify-between items-start mb-5">
+              <div>
+                <h2 className="text-xl font-black text-slate-900">
+                  Évolution des indicateurs RH
+                </h2>
+
+                <p className="text-sm text-slate-500">
+                  Offres, candidats, analyses et validations IA.
+                </p>
+              </div>
+
+              <span className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-xs font-black">
+                Live Data
               </span>
             </div>
 
-            <h1 className="text-6xl font-black mb-5 leading-tight">
-              Dashboard Recrutement IA
-            </h1>
+            <div className="h-[280px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={trendData}>
+                  <defs>
+                    <linearGradient
+                      id="trendColor"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
+                      <stop
+                        offset="5%"
+                        stopColor="#10b981"
+                        stopOpacity={0.35}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor="#10b981"
+                        stopOpacity={0.02}
+                      />
+                    </linearGradient>
+                  </defs>
 
-            <p className="text-green-100 text-lg leading-8 max-w-3xl">
-              Analyse CV, matching IA, Data Pipeline, PostgreSQL, monitoring,
-              realtime Socket.io et couverture RNCP.
-            </p>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip />
+
+                  <Area
+                    type="monotone"
+                    dataKey="value"
+                    stroke="#064e3b"
+                    fill="url(#trendColor)"
+                    strokeWidth={4}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
           </div>
 
-          <div className="bg-white/10 backdrop-blur-xl border border-white/10 rounded-[32px] p-8">
-            <h3 className="text-2xl font-bold mb-6">
-              État du système
-            </h3>
+          <div className="bg-white border border-slate-100 rounded-[32px] p-5 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all">
+            <h2 className="text-xl font-black text-slate-900">
+              Répartition IA
+            </h2>
 
-            <div className="space-y-5">
-              {[
-                ["Backend API", "Online"],
-                ["PostgreSQL", "Connected"],
-                ["AI Matching", "Enabled"],
-                ["Realtime", liveConnected ? "Live" : "Offline"],
-              ].map(([label, status]) => (
-                <div
-                  key={label}
-                  className="flex justify-between items-center bg-white/10 rounded-2xl p-4"
-                >
-                  <span>{label}</span>
+            <p className="text-sm text-slate-500 mb-4">
+              Acceptés, refusés et profils à revoir.
+            </p>
 
-                  <span className="text-green-300 font-bold">
-                    {status}
-                  </span>
+            <div className="h-[280px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={decisionData}
+                    dataKey="value"
+                    nameKey="name"
+                    innerRadius={58}
+                    outerRadius={92}
+                    paddingAngle={5}
+                    label
+                  >
+                    {decisionData.map((_item, index) => (
+                      <Cell
+                        key={index}
+                        fill={decisionColors[index % decisionColors.length]}
+                      />
+                    ))}
+                  </Pie>
+
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* SCORE + LISTES */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+          <div className="bg-white border border-slate-100 rounded-[32px] p-5 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all">
+            <h2 className="text-xl font-black text-slate-900 mb-1">
+              Analyse des scores
+            </h2>
+
+            <p className="text-sm text-slate-500 mb-5">
+              Score min, moyen et max.
+            </p>
+
+            <div className="h-[245px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={scoreData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis dataKey="name" />
+                  <YAxis domain={[0, 100]} />
+                  <Tooltip />
+
+                  <Bar
+                    dataKey="score"
+                    fill="#064e3b"
+                    radius={[12, 12, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          <div className="bg-white border border-slate-100 rounded-[32px] p-5 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all">
+            <h2 className="text-xl font-black text-slate-900 mb-4">
+              Top candidats IA
+            </h2>
+
+            <div className="space-y-3">
+              {topCandidates.length === 0 ? (
+                <p className="text-slate-500 text-sm">
+                  Aucun candidat disponible.
+                </p>
+              ) : (
+                topCandidates.slice(0, 5).map((candidate) => (
+                  <div
+                    key={candidate.id}
+                    className="flex items-center justify-between bg-slate-50 rounded-[24px] p-4"
+                  >
+                    <div>
+                      <h3 className="font-black text-slate-900">
+                        {candidate.fullname || candidate.name || "Candidat"}
+                      </h3>
+
+                      <p className="text-sm text-slate-500">
+                        {candidate.email || "Email non renseigné"}
+                      </p>
+                    </div>
+
+                    <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full font-black text-sm">
+                      {candidate.score || 0}%
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="bg-white border border-slate-100 rounded-[32px] p-5 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all">
+            <div className="flex items-center gap-2 mb-4">
+              <FaWifi className="text-emerald-700" />
+
+              <h2 className="text-xl font-black text-slate-900">
+                Activité live
+              </h2>
+            </div>
+
+            <div className="space-y-3 max-h-[300px] overflow-y-auto">
+              {liveEvents.slice(0, 5).map((event, index) => (
+                <div key={index} className="bg-slate-50 rounded-[24px] p-4">
+                  <p className="font-black text-slate-900">{event.title}</p>
+
+                  <p className="text-sm text-slate-500 line-clamp-2 mt-1">
+                    {event.message}
+                  </p>
+
+                  <p className="text-xs text-slate-400 mt-2">
+                    {new Date(event.date).toLocaleString("fr-FR")}
+                  </p>
                 </div>
               ))}
             </div>
           </div>
         </div>
-      </motion.div>
 
-      {/* KPI CARDS */}
+        {/* OFFRES + ANALYSES */}
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          <div className="bg-white border border-slate-100 rounded-[32px] p-5 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all">
+            <h2 className="text-xl font-black text-slate-900 mb-4">
+              Dernières offres
+            </h2>
 
-      <div className="grid grid-cols-4 gap-6 mb-10">
-        {statsCards.map((card, index) => (
-          <motion.div
-            key={card.label}
-            initial={{ opacity: 0, y: 25 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.08 }}
-            whileHover={{ y: -8, scale: 1.03 }}
-            className={`relative overflow-hidden rounded-[32px] p-7 text-white shadow-xl bg-gradient-to-br ${card.gradient}`}
-          >
-            <div className="absolute right-[-40px] top-[-40px] w-32 h-32 bg-white/20 rounded-full blur-2xl"></div>
+            <div className="space-y-3">
+              {latestJobs.length === 0 ? (
+                <p className="text-slate-500 text-sm">Aucune offre récente.</p>
+              ) : (
+                latestJobs.slice(0, 5).map((job) => (
+                  <div
+                    key={job.id}
+                    className="flex justify-between items-center bg-slate-50 rounded-[24px] p-4"
+                  >
+                    <div>
+                      <h3 className="font-black text-slate-900">
+                        {job.title}
+                      </h3>
 
-            <div className="relative z-10">
-              <div className="flex justify-between items-start mb-8">
-                <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center text-2xl">
-                  {card.icon}
-                </div>
+                      <p className="text-sm text-slate-500">
+                        {job.company || "Entreprise"} •{" "}
+                        {job.location || "Localisation"}
+                      </p>
+                    </div>
 
-                <span className="text-xs bg-white/20 px-3 py-1 rounded-full">
-                  Live
-                </span>
-              </div>
-
-              <p className="text-white/80 mb-2">
-                {card.label}
-              </p>
-
-              <h2 className="text-5xl font-black">
-                {card.value}
-              </h2>
-
-              <p className="text-white/80 mt-3 text-sm">
-                {card.note}
-              </p>
+                    <span className="bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-xs font-black">
+                      Active
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
-          </motion.div>
-        ))}
-      </div>
+          </div>
 
-      {/* CHARTS */}
+          <div className="bg-white border border-slate-100 rounded-[32px] p-5 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all">
+            <h2 className="text-xl font-black text-slate-900 mb-4">
+              Dernières analyses IA
+            </h2>
 
-      <div className="grid grid-cols-3 gap-8 mb-10">
-        <motion.div
-          whileHover={{ y: -5 }}
-          className="col-span-2 bg-white rounded-[36px] p-8 shadow-sm border border-gray-100"
-        >
-          <div className="flex justify-between items-center mb-8">
+            <div className="space-y-3">
+              {latestCandidates.length === 0 ? (
+                <p className="text-slate-500 text-sm">
+                  Aucune analyse récente.
+                </p>
+              ) : (
+                latestCandidates.slice(0, 5).map((candidate) => (
+                  <div
+                    key={candidate.id}
+                    className="flex justify-between items-center bg-slate-50 rounded-[24px] p-4"
+                  >
+                    <div>
+                      <h3 className="font-black text-slate-900">
+                        {candidate.fullname || candidate.name || "Candidat"}
+                      </h3>
+
+                      <p className="text-sm text-slate-500">
+                        Décision : {candidate.decision || "Non définie"}
+                      </p>
+                    </div>
+
+                    <span className="bg-purple-50 text-purple-700 px-3 py-1 rounded-full text-xs font-black">
+                      {candidate.score || 0}%
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* RNCP */}
+        <div className="bg-white border border-slate-100 rounded-[32px] p-5 shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all">
+          <div className="flex justify-between items-start mb-5">
             <div>
-              <h2 className="text-3xl font-black text-[#0b3d2e]">
-                Croissance RH intelligente
+              <h2 className="text-xl font-black text-slate-900">
+                Couverture RNCP du projet
               </h2>
 
-              <p className="text-gray-500 mt-1">
-                Données consolidées en temps réel
+              <p className="text-sm text-slate-500 mt-1">
+                Data Engineering, IA, Fullstack, Monitoring et DevOps.
               </p>
             </div>
 
-            <span className="bg-green-100 text-green-700 px-5 py-3 rounded-full font-bold">
-              Realtime
+            <span className="bg-[#064e3b] text-white px-4 py-2 rounded-xl text-sm font-black">
+              RNCP Ready
             </span>
           </div>
 
-          <div className="h-[360px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={growthData}>
-                <defs>
-                  <linearGradient id="growthColor" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#16a34a" stopOpacity={0.35} />
-                    <stop offset="95%" stopColor="#16a34a" stopOpacity={0.02} />
-                  </linearGradient>
-                </defs>
-
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
-
-                <Area
-                  type="monotone"
-                  dataKey="value"
-                  stroke="#0b3d2e"
-                  fill="url(#growthColor)"
-                  strokeWidth={4}
-                />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
-
-        <motion.div
-          whileHover={{ y: -5 }}
-          className="bg-white rounded-[36px] p-8 shadow-sm border border-gray-100"
-        >
-          <h2 className="text-3xl font-black text-[#0b3d2e] mb-8">
-            Répartition RH
-          </h2>
-
-          <div className="h-[360px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius={65}
-                  outerRadius={120}
-                  paddingAngle={4}
-                  label
-                >
-                  {pieData.map((_item, index) => (
-                    <Cell
-                      key={index}
-                      fill={pieColors[index % pieColors.length]}
-                    />
-                  ))}
-                </Pie>
-
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
-      </div>
-
-      {/* LIVE ACTIVITY + JOBS */}
-
-      <div className="grid grid-cols-2 gap-8 mb-10">
-        <div className="bg-white rounded-[36px] p-8 shadow-sm border border-gray-100">
-          <div className="flex items-center gap-4 mb-8">
-            <FaWifi className="text-3xl text-green-700" />
-
-            <h2 className="text-3xl font-black text-[#0b3d2e]">
-              Activité live
-            </h2>
-          </div>
-
-          <div className="space-y-4 max-h-[330px] overflow-y-auto">
-            {liveEvents.slice(0, 6).map((event, index) => (
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            {rncpBlocs.map((bloc) => (
               <div
-                key={index}
-                className="bg-gray-50 rounded-3xl p-5 border border-gray-100"
+                key={bloc.id}
+                className="bg-slate-50 rounded-[24px] p-4 border border-slate-100 hover:shadow-xl hover:-translate-y-1 transition-all"
               >
-                <p className="font-black text-[#0b3d2e]">
-                  {event.title}
-                </p>
+                <div className="text-emerald-700 text-2xl mb-3">
+                  {bloc.icon}
+                </div>
 
-                <p className="text-gray-500 text-sm mt-1 line-clamp-2">
-                  {event.message}
-                </p>
+                <h3 className="font-black text-slate-900">{bloc.id}</h3>
 
-                <p className="text-gray-400 text-xs mt-2">
-                  {new Date(event.date).toLocaleString("fr-FR")}
+                <p className="text-sm text-slate-500 mb-3">{bloc.title}</p>
+
+                <div className="h-2 bg-white rounded-full overflow-hidden">
+                  <div
+                    className="h-2 bg-emerald-600 rounded-full"
+                    style={{
+                      width: `${bloc.progress}%`,
+                    }}
+                  />
+                </div>
+
+                <p className="text-xs font-bold text-emerald-700 mt-2">
+                  {bloc.progress}% validé
                 </p>
               </div>
             ))}
           </div>
         </div>
-
-        <div className="bg-white rounded-[36px] p-8 shadow-sm border border-gray-100">
-          <h2 className="text-3xl font-black text-[#0b3d2e] mb-8">
-            Dernières offres
-          </h2>
-
-          <div className="space-y-4">
-            {latestJobs.length === 0 ? (
-              <p className="text-gray-500">
-                Aucune offre récente.
-              </p>
-            ) : (
-              latestJobs.slice(0, 5).map((job) => (
-                <div
-                  key={job.id}
-                  className="flex justify-between items-center bg-gray-50 hover:bg-green-50 transition rounded-3xl p-5"
-                >
-                  <div>
-                    <h3 className="font-bold text-[#0b3d2e]">
-                      {job.title}
-                    </h3>
-
-                    <p className="text-gray-500 text-sm mt-1">
-                      {job.company} • {job.location}
-                    </p>
-                  </div>
-
-                  <span className="bg-green-100 text-green-700 px-4 py-2 rounded-full font-bold text-sm">
-                    Active
-                  </span>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* BAR CHART */}
-
-      <div className="bg-white rounded-[36px] p-8 shadow-sm border border-gray-100 mb-10">
-        <h2 className="text-3xl font-black text-[#0b3d2e] mb-8">
-          Offres créées
-        </h2>
-
-        <div className="h-[320px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={barData}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-
-              <Bar
-                dataKey="offres"
-                fill="#0b3d2e"
-                radius={[18, 18, 0, 0]}
-                barSize={70}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
-
-      {/* AI INSIGHTS */}
-
-      <div className="grid grid-cols-3 gap-8 mb-10">
-        <div className="col-span-2 bg-gradient-to-br from-[#062c22] to-[#0b3d2e] rounded-[36px] p-8 text-white shadow-xl">
-          <div className="flex items-center gap-5 mb-6">
-            <div className="w-16 h-16 rounded-3xl bg-white/10 flex items-center justify-center text-3xl">
-              <FaRobot />
-            </div>
-
-            <div>
-              <h2 className="text-3xl font-black">
-                AI Insights
-              </h2>
-
-              <p className="text-green-100">
-                Analyse intelligente des données RH
-              </p>
-            </div>
-          </div>
-
-          <p className="text-green-100 leading-8">
-            Le système combine les offres, les candidats, les scores IA,
-            PostgreSQL et les événements Socket.io pour produire une vision
-            stratégique du recrutement.
-          </p>
-        </div>
-
-        <div className="bg-white rounded-[36px] p-8 shadow-sm border border-gray-100">
-          <FaShieldAlt className="text-4xl text-green-700 mb-5" />
-
-          <h3 className="text-2xl font-black text-[#0b3d2e] mb-3">
-            RNCP Ready
-          </h3>
-
-          <p className="text-gray-500 leading-7">
-            Projet structuré autour des blocs E1, E3, E4 et E5 avec preuves techniques.
-          </p>
-        </div>
-      </div>
-
-      {/* SKILLS */}
-
-      <div className="bg-white rounded-[36px] p-8 shadow-sm border border-gray-100 mb-10">
-        <div className="flex items-center gap-4 mb-6">
-          <FaChartLine className="text-3xl text-[#0b3d2e]" />
-
-          <h2 className="text-3xl font-black text-[#0b3d2e]">
-            Compétences les plus demandées
-          </h2>
-        </div>
-
-        <div className="flex flex-wrap gap-3">
-          {uniqueSkills.length === 0 ? (
-            <p className="text-gray-500">
-              Aucune compétence détectée.
-            </p>
-          ) : (
-            uniqueSkills.map((skill) => (
-              <span
-                key={skill}
-                className="bg-green-100 text-green-700 px-5 py-3 rounded-full font-bold"
-              >
-                {skill}
-              </span>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* RNCP */}
-
-      <div className="bg-white rounded-[36px] p-8 shadow-sm border border-gray-100 mb-10">
-        <div className="flex justify-between items-start mb-10">
-          <div>
-            <h2 className="text-4xl font-black text-[#0b3d2e] mb-3">
-              Couverture RNCP du projet
-            </h2>
-
-            <p className="text-gray-500 max-w-4xl leading-7">
-              SmartRecruit AI couvre les blocs principaux : Data Engineering,
-              Intelligence Artificielle, Développement Fullstack, Monitoring et
-              communication temps réel.
-            </p>
-          </div>
-
-          <span className="bg-[#0b3d2e] text-white px-6 py-4 rounded-2xl font-black">
-            RNCP Ready
-          </span>
-        </div>
-
-        <div className="grid grid-cols-4 gap-6">
-          {rncpBlocs.map((bloc) => (
-            <div
-              key={bloc.id}
-              className="bg-gray-50 rounded-[30px] p-6 border border-gray-100"
-            >
-              <div className="w-16 h-16 rounded-3xl bg-[#0b3d2e] text-white flex items-center justify-center text-2xl mb-5">
-                {bloc.icon}
-              </div>
-
-              <div className="flex justify-between items-center mb-3">
-                <h3 className="text-2xl font-black text-[#0b3d2e]">
-                  {bloc.id}
-                </h3>
-
-                {bloc.status === "Acquis" ? (
-                  <FaCheckCircle className="text-green-600" />
-                ) : (
-                  <FaClock className="text-orange-500" />
-                )}
-              </div>
-
-              <h4 className="font-bold mb-3">
-                {bloc.title}
-              </h4>
-
-              <p className="text-gray-500 text-sm leading-6 mb-5">
-                {bloc.description}
-              </p>
-
-              <div className="w-full bg-white rounded-full h-3 mb-3">
-                <div
-                  className="bg-green-500 h-3 rounded-full"
-                  style={{ width: `${bloc.progress}%` }}
-                ></div>
-              </div>
-
-              <p className="text-sm font-bold text-green-700">
-                {bloc.progress}% — {bloc.status}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* SIGNATURE */}
-
-      <div className="bg-gradient-to-r from-[#031d16] via-[#062c22] to-[#0b3d2e] rounded-[36px] p-10 text-white shadow-xl">
-        <h2 className="text-4xl font-black mb-4">
-          Signature projet
-        </h2>
-
-        <p className="text-green-100 leading-8 text-lg">
-          SmartRecruit AI — Projet développé par
-          <span className="font-black text-white">
-            {" "}
-            Mohamed Amine Essaouabi
-          </span>
-          .
-          <br />
-          Data Engineering • IA • Fullstack • Monitoring • Realtime • RNCP.
-        </p>
       </div>
     </DashboardLayout>
   );
 };
-
-// ===============================
-// EXPORT
-// ===============================
 
 export default RecruiterDashboard;

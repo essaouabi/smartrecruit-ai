@@ -1,6 +1,4 @@
-// ===============================
-// IMPORTS
-// ===============================
+import type { ReactNode } from "react";
 
 import {
   BrowserRouter,
@@ -9,88 +7,111 @@ import {
   Navigate,
 } from "react-router-dom";
 
-// ===============================
-// PAGES
-// ===============================
-
-// HOME
 import Home from "./pages/Home";
 
-// AUTH
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 
-// RECRUITER
 import RecruiterDashboard from "./pages/recruiter/RecruiterDashboard";
 import CVAnalyzer from "./pages/recruiter/CVAnalyzer";
 import Jobs from "./pages/recruiter/Jobs";
 import Candidates from "./pages/recruiter/Candidates";
+import CandidateDetails from "./pages/recruiter/CandidateDetails";
 import AIAssistant from "./pages/recruiter/AIAssistant";
 import Monitoring from "./pages/recruiter/Monitoring";
 import DataPipeline from "./pages/recruiter/DataPipeline";
+
+import CandidateDashboard from "./pages/candidate/CandidateDashboard";
+import CandidateProfile from "./pages/candidate/CandidateProfile";
+import CandidateJobs from "./pages/candidate/CandidateJobs";
+import CandidateAssistant from "./pages/candidate/CandidateAssistant";
+import MyApplications from "./pages/candidate/MyApplications";
 
 // ===============================
 // PROTECTED ROUTE
 // ===============================
 
-const ProtectedRoute = ({
-  children,
-}: any) => {
+type ProtectedRouteProps = {
+  children: ReactNode;
+};
 
-  const token =
-    localStorage.getItem(
-      "token"
-    );
+const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+  const token = localStorage.getItem("token");
 
   if (!token) {
-
-    return (
-      <Navigate
-        to="/login"
-        replace
-      />
-    );
-
+    return <Navigate to="/login" replace />;
   }
 
-  return children;
-
+  return <>{children}</>;
 };
 
 // ===============================
-// APP
+// APP ROUTES
 // ===============================
 
 function App() {
-
   return (
-
     <BrowserRouter>
-
       <Routes>
-
         {/* HOME */}
+        <Route path="/" element={<Home />} />
+
+        {/* AUTH */}
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+
+        {/* =============================== */}
+        {/* CANDIDATE ROUTES */}
+        {/* =============================== */}
 
         <Route
-          path="/"
-          element={<Home />}
+          path="/candidate-dashboard"
+          element={
+            <ProtectedRoute>
+              <CandidateDashboard />
+            </ProtectedRoute>
+          }
         />
-
-        {/* LOGIN */}
 
         <Route
-          path="/login"
-          element={<Login />}
+          path="/candidate-profile"
+          element={
+            <ProtectedRoute>
+              <CandidateProfile />
+            </ProtectedRoute>
+          }
         />
-
-        {/* REGISTER */}
 
         <Route
-          path="/register"
-          element={<Register />}
+          path="/candidate-jobs"
+          element={
+            <ProtectedRoute>
+              <CandidateJobs />
+            </ProtectedRoute>
+          }
         />
 
-        {/* DASHBOARD */}
+        <Route
+          path="/my-applications"
+          element={
+            <ProtectedRoute>
+              <MyApplications />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/candidate-assistant"
+          element={
+            <ProtectedRoute>
+              <CandidateAssistant />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* =============================== */}
+        {/* RECRUITER ROUTES */}
+        {/* =============================== */}
 
         <Route
           path="/recruiter-dashboard"
@@ -101,8 +122,6 @@ function App() {
           }
         />
 
-        {/* CANDIDATES */}
-
         <Route
           path="/candidates"
           element={
@@ -112,7 +131,14 @@ function App() {
           }
         />
 
-        {/* CV ANALYZER */}
+        <Route
+          path="/candidates/:id"
+          element={
+            <ProtectedRoute>
+              <CandidateDetails />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/cv-analyzer"
@@ -123,8 +149,7 @@ function App() {
           }
         />
 
-        {/* JOBS */}
-
+        {/* PAGE EMPLOIS / JOBS RECRUTEUR */}
         <Route
           path="/jobs"
           element={
@@ -134,7 +159,23 @@ function App() {
           }
         />
 
-        {/* AI ASSISTANT */}
+        <Route
+          path="/recruiter/jobs"
+          element={
+            <ProtectedRoute>
+              <Jobs />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/emplois"
+          element={
+            <ProtectedRoute>
+              <Jobs />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/ai-assistant"
@@ -145,8 +186,6 @@ function App() {
           }
         />
 
-        {/* MONITORING */}
-
         <Route
           path="/monitoring"
           element={
@@ -155,8 +194,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
-        {/* DATA PIPELINE */}
 
         <Route
           path="/data-pipeline"
@@ -167,28 +204,30 @@ function App() {
           }
         />
 
-        {/* PAGE INCONNUE */}
-
+        {/* REDIRECTIONS OPTIONNELLES */}
         <Route
-          path="*"
-          element={
-            <Navigate
-              to="/"
-              replace
-            />
-          }
+          path="/dashboard"
+          element={<Navigate to="/recruiter-dashboard" replace />}
         />
 
+        <Route
+          path="/recruiter"
+          element={<Navigate to="/recruiter-dashboard" replace />}
+        />
+
+        <Route
+          path="/candidate"
+          element={<Navigate to="/candidate-dashboard" replace />}
+        />
+
+        {/* 404 */}
+        <Route
+          path="*"
+          element={<Navigate to="/" replace />}
+        />
       </Routes>
-
     </BrowserRouter>
-
   );
-
 }
-
-// ===============================
-// EXPORT
-// ===============================
 
 export default App;

@@ -50,7 +50,10 @@ const Login = () => {
         formData
       );
 
-      localStorage.setItem("token", response.data.token);
+      localStorage.setItem(
+        "token",
+        response.data.token
+      );
 
       localStorage.setItem(
         "user",
@@ -59,7 +62,19 @@ const Login = () => {
 
       alert("Connexion réussie.");
 
-      navigate("/recruiter-dashboard");
+      const userRole =
+        response.data.user?.role;
+
+      if (userRole === "candidate") {
+        navigate("/candidate-dashboard", {
+          replace: true,
+        });
+      } else {
+        navigate("/recruiter-dashboard", {
+          replace: true,
+        });
+      }
+
     } catch (error: any) {
       console.log(error);
 
@@ -80,9 +95,17 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-[#edf4ef] flex items-center justify-center px-6">
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        initial={{
+          opacity: 0,
+          y: 30,
+        }}
+        animate={{
+          opacity: 1,
+          y: 0,
+        }}
+        transition={{
+          duration: 0.5,
+        }}
         className="bg-white w-full max-w-md rounded-[32px] shadow-xl p-10"
       >
         <div className="flex justify-center mb-6">
@@ -96,10 +119,13 @@ const Login = () => {
         </h1>
 
         <p className="text-center text-gray-500 mb-10">
-          Connexion recruteur RH
+          Connexion à votre espace
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-5"
+        >
           <div>
             <label className="block font-semibold mb-2 text-[#0b3d2e]">
               Email
@@ -115,6 +141,7 @@ const Login = () => {
                 className="bg-transparent outline-none w-full"
                 value={formData.email}
                 onChange={handleChange}
+                required
               />
             </div>
           </div>
@@ -134,6 +161,7 @@ const Login = () => {
                 className="bg-transparent outline-none w-full"
                 value={formData.password}
                 onChange={handleChange}
+                required
               />
             </div>
           </div>
@@ -143,7 +171,9 @@ const Login = () => {
             disabled={loading}
             className="w-full bg-[#0b3d2e] hover:bg-[#145443] text-white py-4 rounded-2xl font-bold text-lg transition disabled:opacity-50"
           >
-            {loading ? "Connexion..." : "Se connecter"}
+            {loading
+              ? "Connexion..."
+              : "Se connecter"}
           </button>
         </form>
 

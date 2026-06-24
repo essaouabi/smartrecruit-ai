@@ -9,17 +9,11 @@ import axios from "axios";
 // ===============================
 
 const api = axios.create({
+  baseURL: "http://localhost:5000/api",
 
-  // Backend URL
-  baseURL:
-    "http://localhost:5000/api",
-
-  // Default headers
   headers: {
-    "Content-Type":
-      "application/json",
+    "Content-Type": "application/json",
   },
-
 });
 
 // ===============================
@@ -27,31 +21,19 @@ const api = axios.create({
 // ===============================
 
 api.interceptors.request.use(
-
   (config) => {
+    const token = localStorage.getItem("token");
 
-    // Récupérer token
-    const token =
-      localStorage.getItem("token");
-
-    // Ajouter Authorization header
     if (token) {
-
-      config.headers.Authorization =
-        `Bearer ${token}`;
-
+      config.headers.Authorization = `Bearer ${token}`;
     }
 
     return config;
-
   },
 
   (error) => {
-
     return Promise.reject(error);
-
   }
-
 );
 
 // ===============================
@@ -59,32 +41,25 @@ api.interceptors.request.use(
 // ===============================
 
 api.interceptors.response.use(
-
   (response) => response,
 
   (error) => {
+    if (error.response && error.response.status === 401) {
+      const currentPath = window.location.pathname;
 
-    // Session expirée
-    if (
-      error.response &&
-      error.response.status === 401
-    ) {
+      const isAuthPage =
+        currentPath === "/login" ||
+        currentPath === "/register";
 
-      // Supprimer session
-      localStorage.removeItem("token");
-
-      localStorage.removeItem("user");
-
-      // Redirection login
-      window.location.href =
-        "/login";
-
+      if (!isAuthPage) {
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+        window.location.href = "/login";
+      }
     }
 
     return Promise.reject(error);
-
   }
-
 );
 
 // ===============================
