@@ -1,4 +1,5 @@
 const pool = require("../config/db");
+const { logAudit } = require("../services/auditLog.service");
 
 // =====================================================
 // CANDIDAT : POSTULER À UNE OFFRE
@@ -7,6 +8,8 @@ const pool = require("../config/db");
 const applyToJob = async (req, res) => {
   try {
     const candidateId = req.user.id || req.user.userId;
+    const userRole = req.user.role || "candidate";
+
     const { job_id, cv_id } = req.body;
 
     if (!job_id) {
@@ -103,7 +106,10 @@ const applyToJob = async (req, res) => {
     ];
 
     const cvText = (cv.cv_text || "").toLowerCase();
-    const jobText = `${job.title || ""} ${job.description || ""}`.toLowerCase();
+
+    const jobText = `${job.title || ""} ${
+      job.description || ""
+    }`.toLowerCase();
 
     const requiredSkills = skillsList.filter((skill) =>
       jobText.includes(skill.toLowerCase())
@@ -166,12 +172,35 @@ Score IA final : ${aiScore}%
     const result = await pool.query(
       `
       INSERT INTO applications
-      (candidate_id, job_id, cv_id, status, ai_score, ai_summary)
+      (
+        candidate_id,
+        job_id,
+        cv_id,
+        status,
+        ai_score,
+        ai_summary
+      )
       VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *
       `,
       [candidateId, job_id, cv_id, "pending", aiScore, aiSummary]
     );
+
+    const application = result.rows[0];
+
+    // =====================================================
+    // AUDIT LOG : CANDIDATURE CRÉÉE
+    // =====================================================
+
+    await logAudit({
+      req,
+      userId: candidateId,
+      userRole,
+      action: "APPLICATION_CREATED",
+      entity: "applications",
+      entityId: application.id,
+      description: `Le candidat ${candidateId} a postulé à l'offre "${job.title}" avec le CV "${cv.file_name}" et un score IA de ${aiScore}%.`,
+    });
 
     const io = req.app.get("io");
 
@@ -179,17 +208,35 @@ Score IA final : ${aiScore}%
       io.emit("notification", {
         type: "success",
         title: "Nouvelle candidature",
-        message: `Un candidat vient de postuler avec un score IA de ${aiScore}%.`,
+        message: `Un candidat vient de postuler à "${job.title}" avec un score IA de ${aiScore}%.`,
+        date: new Date().toISOString(),
+      });
+
+      io.emit("audit-log", {
+        action: "APPLICATION_CREATED",
+        entity: "applications",
+        entityId: application.id,
+        message: `Nouvelle candidature créée avec un score IA de ${aiScore}%.`,
         date: new Date().toISOString(),
       });
     }
 
     res.status(201).json({
       message: "Candidature envoyée avec succès.",
-      application: result.rows[0],
+      application,
     });
   } catch (error) {
     console.error("ERREUR APPLY TO JOB :", error);
+
+    await logAudit({
+      req,
+      userId: req.user?.id || req.user?.userId || null,
+      userRole: req.user?.role || null,
+      action: "APPLICATION_CREATE_ERROR",
+      entity: "applications",
+      entityId: null,
+      description: `Erreur lors de la création d'une candidature : ${error.message}`,
+    });
 
     res.status(500).json({
       message: "Erreur lors de la candidature.",
@@ -295,6 +342,9 @@ const getAllApplications = async (req, res) => {
 
 const updateApplicationStatus = async (req, res) => {
   try {
+    const recruiterId = req.user.id || req.user.userId;
+    const userRole = req.user.role || "recruiter";
+
     const { id } = req.params;
     const { status } = req.body;
 
@@ -319,7 +369,18 @@ const updateApplicationStatus = async (req, res) => {
     }
 
     const applicationCheck = await pool.query(
-      "SELECT * FROM applications WHERE id = $1",
+      `
+      SELECT
+        applications.*,
+        users.fullname,
+        users.email,
+        jobs.title,
+        jobs.company
+      FROM applications
+      JOIN users ON applications.candidate_id = users.id
+      JOIN jobs ON applications.job_id = jobs.id
+      WHERE applications.id = $1
+      `,
       [id]
     );
 
@@ -328,6 +389,9 @@ const updateApplicationStatus = async (req, res) => {
         message: "Candidature introuvable.",
       });
     }
+
+    const oldApplication = applicationCheck.rows[0];
+    const oldStatus = oldApplication.status;
 
     const result = await pool.query(
       `
@@ -339,26 +403,61 @@ const updateApplicationStatus = async (req, res) => {
       [status, id]
     );
 
+    const updatedApplication = result.rows[0];
+
+    // =====================================================
+    // AUDIT LOG : STATUT CANDIDATURE MODIFIÉ
+    // =====================================================
+
+    await logAudit({
+      req,
+      userId: recruiterId,
+      userRole,
+      action: "APPLICATION_STATUS_UPDATED",
+      entity: "applications",
+      entityId: Number(id),
+      description: `Le recruteur ${recruiterId} a modifié la candidature de "${oldApplication.fullname}" pour l'offre "${oldApplication.title}" : ${oldStatus} → ${status}.`,
+    });
+
     const io = req.app.get("io");
 
     if (io) {
       io.emit("notification", {
         type: "info",
         title: "Statut candidature mis à jour",
-        message: `Le statut d'une candidature est maintenant : ${status}`,
+        message: `La candidature de ${oldApplication.fullname} est maintenant : ${status}`,
+        date: new Date().toISOString(),
+      });
+
+      io.emit("audit-log", {
+        action: "APPLICATION_STATUS_UPDATED",
+        entity: "applications",
+        entityId: Number(id),
+        message: `Statut modifié : ${oldStatus} → ${status}`,
         date: new Date().toISOString(),
       });
     }
 
     res.json({
       message: "Statut de candidature mis à jour avec succès.",
-      application: result.rows[0],
+      application: updatedApplication,
     });
   } catch (error) {
     console.error(error);
 
+    await logAudit({
+      req,
+      userId: req.user?.id || req.user?.userId || null,
+      userRole: req.user?.role || null,
+      action: "APPLICATION_STATUS_UPDATE_ERROR",
+      entity: "applications",
+      entityId: Number(req.params?.id) || null,
+      description: `Erreur modification statut candidature : ${error.message}`,
+    });
+
     res.status(500).json({
       message: "Erreur modification statut candidature.",
+      error: error.message,
     });
   }
 };

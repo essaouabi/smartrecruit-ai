@@ -36,13 +36,15 @@ const aiRoutes = require("./routes/ai.routes");
 const monitoringRoutes = require("./routes/monitoring.routes");
 const dataRoutes = require("./routes/data.routes");
 const applicationRoutes = require("./routes/application.routes");
-const scrapingRoutes = require("./routes/scraping.routes"); // <-- Ajouté ici
+const scrapingRoutes = require("./routes/scraping.routes");
+const auditRoutes = require("./routes/audit.routes");
 
 // =====================================================
-// SERVICE DE JOURNALISATION WINSTON
+// SERVICES
 // =====================================================
 
 const logger = require("./services/logger.service");
+const { logAudit } = require("./services/auditLog.service");
 
 // =====================================================
 // CRÉATION DE L'APPLICATION EXPRESS
@@ -149,6 +151,7 @@ app.get("/", (req, res) => {
     monitoring: "enabled",
     dataPipeline: "enabled",
     realtime: "enabled",
+    auditLogs: "enabled",
   });
 });
 
@@ -165,7 +168,8 @@ app.use("/api/candidates", candidateRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/monitoring", monitoringRoutes);
 app.use("/api/applications", applicationRoutes);
-app.use("/api/scraping", scrapingRoutes); // <-- Ajouté ici
+app.use("/api/scraping", scrapingRoutes);
+app.use("/api/audit", auditRoutes);
 
 // =====================================================
 // GESTION DES ROUTES INEXISTANTES
@@ -183,12 +187,23 @@ app.use((req, res) => {
 // GESTION GLOBALE DES ERREURS
 // =====================================================
 
-app.use((err, req, res, next) => {
+app.use((err, req, res, _next) => {
   logger.error({
     message: err.message,
     route: req.originalUrl,
     method: req.method,
     date: new Date().toISOString(),
+  });
+
+  // Enregistrement automatique des erreurs importantes dans audit_logs
+  logAudit({
+    req,
+    userId: req.user?.id || req.user?.userId || null,
+    userRole: req.user?.role || null,
+    action: "BACKEND_ERROR",
+    entity: "server",
+    entityId: null,
+    description: `${req.method} ${req.originalUrl} - ${err.message}`,
   });
 
   io.emit("notification", {
@@ -224,6 +239,7 @@ const startServer = async () => {
 
       console.log(`Server running on port ${PORT}`);
       console.log("Socket.io realtime enabled");
+      console.log("Audit logs enabled");
       console.log(`Swagger API Docs: http://localhost:${PORT}/api-docs`);
     });
   } catch (error) {

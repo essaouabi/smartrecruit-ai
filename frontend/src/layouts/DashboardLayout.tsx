@@ -2,7 +2,7 @@
 // DASHBOARD LAYOUT - SMARTRECRUIT AI
 // ======================================================
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 
 import socket from "../services/socket";
@@ -25,10 +25,11 @@ import {
   FaExclamationTriangle,
   FaTimes,
   FaCircle,
+  FaHistory,
 } from "react-icons/fa";
 
 interface Props {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
 type NotificationItem = {
@@ -100,11 +101,36 @@ const DashboardLayout = ({ children }: Props) => {
           path: "/monitoring",
           icon: <FaServer />,
         },
+        {
+          label: "Audit Logs",
+          path: "/audit-logs",
+          icon: <FaHistory />,
+        },
       ]
     : [
         {
+          label: "Tableau de bord",
+          path: "/candidate-dashboard",
+          icon: <FaChartPie />,
+        },
+        {
+          label: "Offres",
+          path: "/candidate-jobs",
+          icon: <FaBriefcase />,
+        },
+        {
+          label: "Mes candidatures",
+          path: "/my-applications",
+          icon: <FaFileAlt />,
+        },
+        {
+          label: "Profil",
+          path: "/candidate-profile",
+          icon: <FaUsers />,
+        },
+        {
           label: "Assistant IA",
-          path: "/ai-assistant",
+          path: "/candidate-assistant",
           icon: <FaRobot />,
         },
       ];
@@ -149,10 +175,26 @@ const DashboardLayout = ({ children }: Props) => {
       ]);
     };
 
+    const handleAuditLog = (payload: any) => {
+      setNotifications((prev) => [
+        {
+          type: "info",
+          title: "Audit log",
+          message:
+            payload.message ||
+            payload.action ||
+            "Nouvelle action enregistrée dans l’audit.",
+          date: payload.date || new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+    };
+
     socket.on("connect", handleConnect);
     socket.on("disconnect", handleDisconnect);
     socket.on("notification", handleNotification);
     socket.on("monitoring-log", handleMonitoringLog);
+    socket.on("audit-log", handleAuditLog);
 
     if (socket.connected) {
       setIsRealtimeConnected(true);
@@ -163,6 +205,7 @@ const DashboardLayout = ({ children }: Props) => {
       socket.off("disconnect", handleDisconnect);
       socket.off("notification", handleNotification);
       socket.off("monitoring-log", handleMonitoringLog);
+      socket.off("audit-log", handleAuditLog);
     };
   }, []);
 
@@ -202,94 +245,95 @@ const DashboardLayout = ({ children }: Props) => {
 
   return (
     <div className="flex min-h-screen bg-[#f6f8fb] text-slate-900">
-      <aside className="w-[260px] bg-[#081c15] text-white flex flex-col justify-between px-4 py-5 fixed left-0 top-0 bottom-0 z-50 shadow-2xl">
-        <div>
-          {/* LOGO */}
-          <div className="flex flex-col items-center mb-8">
-            <div className="bg-gradient-to-br from-[#0d2f24] to-[#134437] rounded-3xl p-4 border border-white/10 shadow-2xl backdrop-blur-xl hover:scale-[1.02] hover:shadow-emerald-500/20 transition-all">
-              <img
-                src={logoSmartRecruit}
-                alt="SmartRecruit AI"
-                className="w-[95px] h-auto object-contain"
-              />
-            </div>
-
-            <h2 className="mt-4 text-xl font-black bg-gradient-to-r from-emerald-300 to-cyan-300 bg-clip-text text-transparent">
-              SmartRecruit AI
-            </h2>
-
-            <p className="text-[10px] tracking-[2px] uppercase text-slate-400 text-center">
-              Intelligent Hiring Platform
-            </p>
-          </div>
-
-          {/* SYSTEM STATUS */}
-          <div className="mx-2 mb-7 rounded-2xl bg-white/10 border border-white/10 p-4 backdrop-blur-xl shadow-2xl hover:scale-[1.02] hover:shadow-emerald-500/20 transition-all">
-            <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-emerald-200">Infrastructure</p>
-
-              <FaCircle
-                className={`text-[10px] ${
-                  isRealtimeConnected ? "text-emerald-400" : "text-orange-400"
-                }`}
-              />
-            </div>
-
-            <h3 className="font-black text-sm">
-              {isRealtimeConnected ? "Système en ligne" : "Mode local"}
-            </h3>
-          </div>
-
-          {/* NAVIGATION */}
-          <nav className="space-y-2">
-            {menuItems.map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) =>
-                  `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all border ${
-                    isActive
-                      ? "bg-emerald-500 text-[#081c15] border-emerald-400 shadow-lg shadow-emerald-500/20 scale-[1.02]"
-                      : "text-emerald-50/80 border-transparent hover:bg-white/10 hover:text-white hover:border-white/10 hover:scale-[1.02] hover:shadow-emerald-500/20"
-                  }`
-                }
-              >
-                <span className="text-base">{item.icon}</span>
-                <span>{item.label}</span>
-              </NavLink>
-            ))}
-          </nav>
-        </div>
-
-        {/* USER + LOGOUT */}
-        <div className="space-y-3">
-          <div className="rounded-2xl bg-white/10 border border-white/10 p-4 backdrop-blur-xl shadow-2xl">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-400 text-[#081c15] flex items-center justify-center font-black shadow-lg">
-                {user.fullname ? user.fullname.charAt(0) : "U"}
+      <aside className="w-[260px] bg-[#081c15] text-white fixed left-0 top-0 bottom-0 z-50 shadow-2xl overflow-y-auto">
+        <div className="min-h-screen flex flex-col justify-between px-4 py-5">
+          <div>
+            <div className="flex flex-col items-center mb-6">
+              <div className="bg-gradient-to-br from-[#0d2f24] to-[#134437] rounded-3xl p-4 border border-white/10 shadow-2xl backdrop-blur-xl hover:scale-[1.02] hover:shadow-emerald-500/20 transition-all">
+                <img
+                  src={logoSmartRecruit}
+                  alt="SmartRecruit AI"
+                  className="w-[95px] h-auto object-contain"
+                />
               </div>
 
-              <div className="min-w-0">
-                <p className="text-xs text-emerald-200">Connecté</p>
+              <h2 className="mt-4 text-xl font-black bg-gradient-to-r from-emerald-300 to-cyan-300 bg-clip-text text-transparent">
+                SmartRecruit AI
+              </h2>
 
-                <h3 className="font-black text-sm truncate">
-                  {user.fullname || "Utilisateur"}
-                </h3>
-
-                <p className="text-[11px] text-slate-400 capitalize">
-                  {isRecruiter ? "Recruteur" : "Candidat"}
-                </p>
-              </div>
+              <p className="text-[10px] tracking-[2px] uppercase text-slate-400 text-center">
+                Intelligent Hiring Platform
+              </p>
             </div>
+
+            <div className="mx-2 mb-5 rounded-2xl bg-white/10 border border-white/10 p-4 backdrop-blur-xl shadow-2xl hover:scale-[1.02] hover:shadow-emerald-500/20 transition-all">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs text-emerald-200">Infrastructure</p>
+
+                <FaCircle
+                  className={`text-[10px] ${
+                    isRealtimeConnected
+                      ? "text-emerald-400"
+                      : "text-orange-400"
+                  }`}
+                />
+              </div>
+
+              <h3 className="font-black text-sm">
+                {isRealtimeConnected ? "Système en ligne" : "Mode local"}
+              </h3>
+            </div>
+
+            <nav className="space-y-2 pb-6">
+              {menuItems.map((item) => (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={({ isActive }) =>
+                    `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all border ${
+                      isActive
+                        ? "bg-emerald-500 text-[#081c15] border-emerald-400 shadow-lg shadow-emerald-500/20 scale-[1.02]"
+                        : "text-emerald-50/80 border-transparent hover:bg-white/10 hover:text-white hover:border-white/10 hover:scale-[1.02] hover:shadow-emerald-500/20"
+                    }`
+                  }
+                >
+                  <span className="text-base">{item.icon}</span>
+                  <span>{item.label}</span>
+                </NavLink>
+              ))}
+            </nav>
           </div>
 
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 rounded-xl border border-white/10 py-3 text-sm font-bold text-emerald-50/80 hover:bg-red-500 hover:text-white hover:scale-[1.02] transition-all"
-          >
-            <FaSignOutAlt />
-            Déconnexion
-          </button>
+          <div className="space-y-3 pt-4">
+            <div className="rounded-2xl bg-white/10 border border-white/10 p-4 backdrop-blur-xl shadow-2xl">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-400 text-[#081c15] flex items-center justify-center font-black shadow-lg">
+                  {user.fullname ? user.fullname.charAt(0) : "U"}
+                </div>
+
+                <div className="min-w-0">
+                  <p className="text-xs text-emerald-200">Connecté</p>
+
+                  <h3 className="font-black text-sm truncate">
+                    {user.fullname || "Utilisateur"}
+                  </h3>
+
+                  <p className="text-[11px] text-slate-400 capitalize">
+                    {isRecruiter ? "Recruteur" : "Candidat"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="w-full flex items-center justify-center gap-2 rounded-xl border border-white/10 py-3 text-sm font-bold text-emerald-50/80 hover:bg-red-500 hover:text-white hover:scale-[1.02] transition-all"
+            >
+              <FaSignOutAlt />
+              Déconnexion
+            </button>
+          </div>
         </div>
       </aside>
 
@@ -341,6 +385,7 @@ const DashboardLayout = ({ children }: Props) => {
 
             <div className="relative">
               <button
+                type="button"
                 onClick={() => setShowNotifications(!showNotifications)}
                 className="relative w-12 h-12 rounded-xl bg-white border border-slate-200 flex items-center justify-center hover:bg-slate-50 hover:scale-[1.02] transition-all shadow-sm"
               >
@@ -367,6 +412,7 @@ const DashboardLayout = ({ children }: Props) => {
                     </div>
 
                     <button
+                      type="button"
                       onClick={clearNotifications}
                       className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-red-50 text-slate-500 hover:text-red-600 flex items-center justify-center transition-all"
                     >

@@ -20,6 +20,7 @@ import CandidateDetails from "./pages/recruiter/CandidateDetails";
 import AIAssistant from "./pages/recruiter/AIAssistant";
 import Monitoring from "./pages/recruiter/Monitoring";
 import DataPipeline from "./pages/recruiter/DataPipeline";
+import AuditLogs from "./pages/recruiter/AuditLogs";
 
 import CandidateDashboard from "./pages/candidate/CandidateDashboard";
 import CandidateProfile from "./pages/candidate/CandidateProfile";
@@ -149,7 +150,6 @@ function App() {
           }
         />
 
-        {/* PAGE EMPLOIS / JOBS RECRUTEUR */}
         <Route
           path="/jobs"
           element={
@@ -204,6 +204,20 @@ function App() {
           }
         />
 
+        <Route
+          path="/audit-logs"
+          element={
+            <ProtectedRoute>
+              <AuditLogs />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/audit"
+          element={<Navigate to="/audit-logs" replace />}
+        />
+
         {/* REDIRECTIONS OPTIONNELLES */}
         <Route
           path="/dashboard"
@@ -221,10 +235,7 @@ function App() {
         />
 
         {/* 404 */}
-        <Route
-          path="*"
-          element={<Navigate to="/" replace />}
-        />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
