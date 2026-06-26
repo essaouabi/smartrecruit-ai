@@ -1,9 +1,12 @@
 // ======================================================
 // HOME PAGE - SMARTRECRUIT AI
+// International Corporate SaaS Landing Page
+// Light Premium Design
 // ======================================================
 
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import type { ReactNode } from "react";
 
 import logoSmartRecruit from "../assets/logo-smartrecruit.png";
 
@@ -21,52 +24,94 @@ import {
   FaCode,
   FaLock,
   FaCloud,
+  FaGlobe,
+  FaRocket,
+  FaUsers,
+  FaLayerGroup,
+  FaNetworkWired,
+  FaTerminal,
+  FaCogs,
+  FaPlay,
+  FaBriefcase,
+  FaSearch,
+  FaUserCheck,
+  FaClipboardList,
 } from "react-icons/fa";
 
 // ======================================================
-// HOME PAGE
+// TYPES
+// ======================================================
+
+type Feature = {
+  title: string;
+  description: string;
+  icon: ReactNode;
+  color: string;
+};
+
+type StackItem = {
+  label: string;
+  value: string;
+  icon: ReactNode;
+};
+
+type Step = {
+  title: string;
+  description: string;
+  icon: ReactNode;
+};
+
+// ======================================================
+// HOME
 // ======================================================
 
 function Home() {
-  const features = [
+  const features: Feature[] = [
     {
-      title: "Analyse CV IA",
+      title: "AI Resume Analysis",
       description:
-        "Extraction automatique des compétences, résumé RH, score IA et décision candidat.",
+        "Analyse automatique des CV, extraction des compétences, score IA et recommandation RH.",
       icon: <FaFileAlt />,
       color: "bg-blue-50 text-blue-700",
     },
     {
-      title: "Assistant RH IA",
+      title: "Smart Matching",
       description:
-        "Génération d’offres, questions d’entretien, synthèse candidat et aide au recrutement.",
+        "Matching intelligent entre candidat, compétences, offre et contexte métier.",
+      icon: <FaBrain />,
+      color: "bg-violet-50 text-violet-700",
+    },
+    {
+      title: "Recruiter Copilot",
+      description:
+        "Assistant IA pour rédiger des offres, préparer les entretiens et comparer les profils.",
       icon: <FaRobot />,
-      color: "bg-emerald-50 text-emerald-700",
+      color: "bg-cyan-50 text-cyan-700",
+    },
+    {
+      title: "Candidate Experience",
+      description:
+        "Espace candidat moderne avec suivi des candidatures, analyse CV et recommandations.",
+      icon: <FaUsers />,
+      color: "bg-pink-50 text-pink-700",
     },
     {
       title: "Data Pipeline",
       description:
-        "Import CSV, nettoyage, validation, historique, stockage PostgreSQL et traçabilité.",
+        "Import CSV, nettoyage, validation, historisation et stockage PostgreSQL.",
       icon: <FaDatabase />,
-      color: "bg-purple-50 text-purple-700",
+      color: "bg-emerald-50 text-emerald-700",
     },
     {
-      title: "Monitoring DevOps",
+      title: "DevOps Monitoring",
       description:
-        "Logs Winston, Socket.io, Swagger, GitHub Actions, tests Jest et supervision backend.",
+        "Logs backend, audit trail, notifications, Socket.io, tests et CI/CD.",
       icon: <FaServer />,
       color: "bg-orange-50 text-orange-700",
     },
   ];
 
-  const stats = [
-    ["CV analysés", "128+"],
-    ["Offres créées", "24"],
-    ["Score IA moyen", "92%"],
-    ["Pipeline", "Live"],
-  ];
-
-  const stack = [
+  const stack: StackItem[] = [
     {
       label: "Frontend",
       value: "React + TypeScript",
@@ -83,7 +128,7 @@ function Home() {
       icon: <FaDatabase />,
     },
     {
-      label: "Sécurité",
+      label: "Security",
       value: "JWT + Middleware",
       icon: <FaLock />,
     },
@@ -91,6 +136,29 @@ function Home() {
       label: "DevOps",
       value: "GitHub Actions",
       icon: <FaCloud />,
+    },
+  ];
+
+  const steps: Step[] = [
+    {
+      title: "Collect",
+      description: "Collecte des offres, CV et données candidates.",
+      icon: <FaSearch />,
+    },
+    {
+      title: "Analyze",
+      description: "Analyse IA des profils, compétences et expériences.",
+      icon: <FaBrain />,
+    },
+    {
+      title: "Match",
+      description: "Matching candidat/offre avec scoring intelligent.",
+      icon: <FaChartLine />,
+    },
+    {
+      title: "Decide",
+      description: "Aide à la décision RH avec recommandations claires.",
+      icon: <FaUserCheck />,
     },
   ];
 
@@ -103,44 +171,66 @@ function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#f6f8fb] overflow-hidden text-[#071f19]">
-      {/* ==================================================
-          NAVBAR
-      ================================================== */}
+    <div className="min-h-screen bg-[#f8fbff] text-slate-950 overflow-hidden">
+      {/* BACKGROUND */}
+      <div className="fixed inset-0 pointer-events-none">
+        <div className="absolute top-[-180px] right-[-120px] w-[600px] h-[600px] bg-blue-200/50 rounded-full blur-3xl" />
+        <div className="absolute top-[360px] left-[-200px] w-[620px] h-[620px] bg-violet-200/40 rounded-full blur-3xl" />
+        <div className="absolute bottom-[-220px] right-[20%] w-[620px] h-[620px] bg-cyan-200/40 rounded-full blur-3xl" />
+      </div>
 
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl border-b border-gray-100">
-        <div className="max-w-7xl mx-auto px-8 py-4 flex items-center justify-between">
+      {/* NAVBAR */}
+      <header className="sticky top-0 z-50 bg-white/85 backdrop-blur-2xl border-b border-slate-200">
+        <div className="max-w-[1440px] mx-auto px-6 xl:px-10 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-4">
-            <div className="bg-gradient-to-br from-[#0d2f24] to-[#134437] rounded-2xl p-2 border border-emerald-500/20 shadow-md">
+            <div className="w-14 h-14 rounded-2xl bg-slate-950 p-2 shadow-lg">
               <img
                 src={logoSmartRecruit}
                 alt="SmartRecruit AI"
-                className="w-14 h-14 object-contain"
+                className="w-full h-full object-contain"
               />
             </div>
 
             <div>
-              <h1 className="text-2xl font-black bg-gradient-to-r from-[#064e3b] to-[#2563eb] bg-clip-text text-transparent">
+              <h1 className="text-2xl font-black tracking-tight">
                 SmartRecruit AI
               </h1>
 
-              <p className="text-xs tracking-[1.5px] uppercase text-gray-500">
-                Intelligent Hiring Platform
+              <p className="text-[10px] uppercase tracking-[3px] text-blue-600 font-black">
+                Global Recruitment Intelligence
               </p>
             </div>
           </Link>
 
-          <div className="flex items-center gap-4">
+          <nav className="hidden lg:flex items-center gap-8 text-sm font-black text-slate-600">
+            <a href="#platform" className="hover:text-blue-600 transition">
+              Platform
+            </a>
+
+            <a href="#features" className="hover:text-blue-600 transition">
+              Features
+            </a>
+
+            <a href="#architecture" className="hover:text-blue-600 transition">
+              Architecture
+            </a>
+
+            <a href="#rncp" className="hover:text-blue-600 transition">
+              RNCP
+            </a>
+          </nav>
+
+          <div className="flex items-center gap-3">
             <Link
               to="/login"
-              className="text-[#064e3b] font-black hover:text-emerald-600 transition"
+              className="hidden sm:inline-flex px-5 py-3 rounded-2xl font-black text-slate-700 hover:bg-slate-100 transition"
             >
               Connexion
             </Link>
 
             <Link
               to="/register"
-              className="bg-[#064e3b] text-white px-6 py-3 rounded-2xl font-black hover:bg-[#043b2d] transition shadow-lg"
+              className="bg-slate-950 text-white px-6 py-3 rounded-2xl font-black hover:bg-blue-700 transition shadow-lg"
             >
               Créer un compte
             </Link>
@@ -148,215 +238,243 @@ function Home() {
         </div>
       </header>
 
-      {/* ==================================================
-          HERO
-      ================================================== */}
+      {/* HERO */}
+      <section className="relative z-10 max-w-[1440px] mx-auto px-6 xl:px-10 pt-20 pb-24">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-14 items-center">
+          {/* LEFT */}
+          <motion.div
+            initial={{ opacity: 0, y: 26 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+            className="xl:col-span-6"
+          >
+            <div className="inline-flex items-center gap-3 bg-blue-50 border border-blue-100 text-blue-700 px-5 py-3 rounded-full font-black mb-8">
+              <FaGlobe />
+              International AI Hiring Platform
+            </div>
 
-      <section className="relative max-w-7xl mx-auto px-8 pt-16 pb-20 grid grid-cols-1 xl:grid-cols-2 gap-14 items-center">
-        <div className="absolute top-20 right-20 w-[460px] h-[460px] bg-emerald-300/20 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-20 left-10 w-[320px] h-[320px] bg-blue-300/20 rounded-full blur-3xl"></div>
+            <h2 className="text-5xl md:text-7xl font-black leading-[1.03] tracking-tight">
+              Modern hiring,
+              <span className="block bg-gradient-to-r from-blue-600 via-violet-600 to-pink-500 bg-clip-text text-transparent">
+                powered by AI.
+              </span>
+            </h2>
 
-        {/* LEFT */}
+            <p className="mt-7 max-w-2xl text-lg md:text-xl leading-9 text-slate-600">
+              SmartRecruit AI est une plateforme fullstack de recrutement
+              intelligent qui combine analyse CV, matching candidat/offre,
+              assistant RH IA, data pipeline, audit logs et monitoring DevOps.
+            </p>
 
-        <motion.div
-          initial={{
-            opacity: 0,
-            x: -40,
-          }}
-          animate={{
-            opacity: 1,
-            x: 0,
-          }}
-          transition={{
-            duration: 0.7,
-          }}
-          className="relative z-10"
-        >
-          <div className="inline-flex items-center gap-3 bg-emerald-50 border border-emerald-100 text-emerald-700 px-5 py-3 rounded-full font-black mb-8 shadow-sm">
-            <FaBrain />
-            Plateforme RH intelligente RNCP Ready
-          </div>
-
-          <h2 className="text-6xl xl:text-7xl font-black leading-tight mb-8 tracking-tight">
-            Recrutez plus vite avec une IA RH intelligente.
-          </h2>
-
-          <p className="text-xl text-gray-600 leading-9 max-w-2xl">
-            SmartRecruit AI automatise l’analyse des CV, le matching
-            candidat/offre, le scoring IA, la gestion des offres, la supervision
-            backend et le pipeline de données dans une plateforme fullstack
-            moderne.
-          </p>
-
-          <div className="flex flex-wrap gap-5 mt-10">
-            <Link
-              to="/login"
-              className="bg-gradient-to-r from-[#064e3b] to-[#0f766e] text-white px-8 py-5 rounded-2xl font-black text-lg hover:scale-105 transition-all shadow-xl flex items-center gap-3"
-            >
-              Accéder au dashboard
-              <FaArrowRight />
-            </Link>
-
-            <Link
-              to="/register"
-              className="bg-white border border-gray-200 text-[#064e3b] px-8 py-5 rounded-2xl font-black text-lg hover:bg-emerald-50 transition-all shadow-sm"
-            >
-              Créer un compte
-            </Link>
-          </div>
-
-          {/* TRUST CARDS */}
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mt-12">
-            {[
-              ["IA", "Matching intelligent"],
-              ["Data", "PostgreSQL + CSV"],
-              ["DevOps", "CI/CD + Monitoring"],
-            ].map(([label, value]) => (
-              <div
-                key={label}
-                className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100"
+            <div className="mt-10 flex flex-wrap gap-4">
+              <Link
+                to="/login"
+                className="group bg-blue-600 text-white px-8 py-5 rounded-2xl font-black text-lg shadow-xl hover:bg-blue-700 transition flex items-center gap-3"
               >
-                <p className="text-gray-400 text-sm">
-                  {label}
-                </p>
+                Accéder à la plateforme
+                <FaArrowRight className="group-hover:translate-x-1 transition" />
+              </Link>
 
-                <h3 className="text-[#064e3b] font-black text-lg mt-1">
-                  {value}
-                </h3>
-              </div>
-            ))}
-          </div>
-        </motion.div>
+              <Link
+                to="/register"
+                className="bg-white border border-slate-200 text-slate-950 px-8 py-5 rounded-2xl font-black text-lg hover:bg-slate-50 transition flex items-center gap-3 shadow-sm"
+              >
+                <FaPlay />
+                Créer un compte
+              </Link>
+            </div>
 
-        {/* RIGHT */}
+            <div className="mt-12 grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <TrustCard
+                icon={<FaBrain />}
+                label="AI Engine"
+                value="Smart Matching"
+              />
 
-        <motion.div
-          initial={{
-            opacity: 0,
-            x: 40,
-          }}
-          animate={{
-            opacity: 1,
-            x: 0,
-          }}
-          transition={{
-            duration: 0.8,
-          }}
-          className="relative z-10"
-        >
-          <div className="relative bg-white rounded-[42px] p-7 shadow-[0_30px_90px_rgba(15,23,42,0.14)] border border-gray-100">
-            {/* MINI DASHBOARD */}
+              <TrustCard
+                icon={<FaDatabase />}
+                label="Data Core"
+                value="PostgreSQL"
+              />
 
-            <div className="bg-gradient-to-br from-[#031d16] via-[#062c22] to-[#0b3d2e] rounded-[34px] p-8 text-white mb-6 overflow-hidden relative">
-              <div className="absolute right-[-60px] top-[-60px] w-48 h-48 bg-emerald-400/20 rounded-full blur-2xl"></div>
+              <TrustCard
+                icon={<FaShieldAlt />}
+                label="Security"
+                value="JWT + Audit"
+              />
+            </div>
+          </motion.div>
 
-              <div className="relative flex justify-between items-start mb-10">
-                <div>
-                  <p className="text-emerald-300 font-black">
-                    SmartRecruit Dashboard
-                  </p>
+          {/* RIGHT PRODUCT UI */}
+          <motion.div
+            initial={{ opacity: 0, y: 26 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+            className="xl:col-span-6"
+          >
+            <div className="relative rounded-[42px] bg-white border border-slate-200 shadow-[0_40px_120px_rgba(15,23,42,0.14)] p-5">
+              <div className="rounded-[34px] bg-slate-950 p-6 text-white overflow-hidden relative">
+                <div className="absolute top-[-80px] right-[-80px] w-72 h-72 bg-blue-500/30 rounded-full blur-3xl" />
+                <div className="absolute bottom-[-90px] left-[-90px] w-72 h-72 bg-violet-500/30 rounded-full blur-3xl" />
 
-                  <h3 className="text-5xl font-black mt-2">
-                    92%
-                  </h3>
-
-                  <p className="text-emerald-100">
-                    Score IA moyen
-                  </p>
-                </div>
-
-                <div className="w-16 h-16 rounded-3xl bg-white/10 flex items-center justify-center text-3xl">
-                  <FaChartLine />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-4 gap-4">
-                {stats.map(([label, value]) => (
-                  <div
-                    key={label}
-                    className="bg-white/10 border border-white/10 rounded-2xl p-4"
-                  >
-                    <p className="text-emerald-200 text-sm">
-                      {label}
+                <div className="relative z-10 flex items-start justify-between gap-6">
+                  <div>
+                    <p className="text-blue-300 font-black">
+                      SmartRecruit Intelligence
                     </p>
 
-                    <h4 className="font-black text-2xl">
-                      {value}
-                    </h4>
+                    <h3 className="text-6xl font-black mt-3">92%</h3>
+
+                    <p className="text-slate-400 mt-1">Average AI score</p>
                   </div>
-                ))}
+
+                  <div className="w-16 h-16 rounded-3xl bg-blue-500 flex items-center justify-center text-3xl">
+                    <FaChartLine />
+                  </div>
+                </div>
+
+                <div className="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+                  <DarkMetric label="CV analyzed" value="128+" />
+                  <DarkMetric label="Jobs created" value="24" />
+                  <DarkMetric label="AI score" value="92%" />
+                  <DarkMetric label="Pipeline" value="Live" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-5">
+                <MiniProductCard
+                  icon={<FaFileAlt />}
+                  title="CV Intelligence"
+                  text="Extraction, résumé, score IA et décision."
+                  color="bg-blue-50 text-blue-700"
+                />
+
+                <MiniProductCard
+                  icon={<FaRobot />}
+                  title="Recruiter Copilot"
+                  text="Offres, questions et comparaison profils."
+                  color="bg-violet-50 text-violet-700"
+                />
+
+                <MiniProductCard
+                  icon={<FaDatabase />}
+                  title="Data Pipeline"
+                  text="CSV, validation, historique PostgreSQL."
+                  color="bg-pink-50 text-pink-700"
+                />
+
+                <MiniProductCard
+                  icon={<FaTerminal />}
+                  title="Monitoring"
+                  text="Logs, audit, Socket.io et CI/CD."
+                  color="bg-orange-50 text-orange-700"
+                />
               </div>
             </div>
-
-            {/* FEATURES MINI */}
-
-            <div className="grid grid-cols-2 gap-5">
-              {features.map((feature) => (
-                <div
-                  key={feature.title}
-                  className="bg-[#f8fafc] border border-gray-100 rounded-3xl p-5"
-                >
-                  <div
-                    className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl mb-4 ${feature.color}`}
-                  >
-                    {feature.icon}
-                  </div>
-
-                  <h4 className="font-black text-[#064e3b] mb-2">
-                    {feature.title}
-                  </h4>
-
-                  <p className="text-sm text-gray-500 leading-6">
-                    {feature.description}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </motion.div>
+          </motion.div>
+        </div>
       </section>
 
-      {/* ==================================================
-          FEATURES SECTION
-      ================================================== */}
+      {/* LOGOS / TRUST STRIP */}
+      <section className="relative z-10 max-w-[1440px] mx-auto px-6 xl:px-10 pb-20">
+        <div className="rounded-[30px] bg-white border border-slate-200 shadow-sm p-6">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4 text-center">
+            <TrustStripItem icon={<FaRocket />} label="AI Ready" />
+            <TrustStripItem icon={<FaShieldAlt />} label="Secure" />
+            <TrustStripItem icon={<FaCloud />} label="CI/CD" />
+            <TrustStripItem icon={<FaDatabase />} label="Data Driven" />
+            <TrustStripItem icon={<FaNetworkWired />} label="Realtime" />
+          </div>
+        </div>
+      </section>
 
-      <section className="max-w-7xl mx-auto px-8 pb-20">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-3 bg-white border border-gray-100 px-5 py-3 rounded-full text-emerald-700 font-black mb-5">
-            <FaBolt />
-            Solution complète pour recruteurs
+      {/* PLATFORM */}
+      <section
+        id="platform"
+        className="relative z-10 max-w-[1440px] mx-auto px-6 xl:px-10 pb-24"
+      >
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+          <div className="xl:col-span-5 rounded-[40px] bg-slate-950 text-white p-8 shadow-2xl overflow-hidden relative">
+            <div className="absolute top-[-120px] right-[-120px] w-80 h-80 bg-blue-500/25 rounded-full blur-3xl" />
+
+            <div className="relative z-10">
+              <div className="w-16 h-16 rounded-3xl bg-blue-500 flex items-center justify-center text-3xl mb-8">
+                <FaLayerGroup />
+              </div>
+
+              <h2 className="text-4xl md:text-5xl font-black leading-tight">
+                One platform for the complete recruitment workflow.
+              </h2>
+
+              <p className="text-slate-300 leading-8 mt-6">
+                Une plateforme claire, moderne et démontrable devant le jury :
+                recruteur, candidat, IA, données, sécurité et supervision.
+              </p>
+            </div>
           </div>
 
-          <h2 className="text-5xl font-black text-[#071f19] mb-4">
-            Data + IA + Recrutement dans une seule plateforme.
+          <div className="xl:col-span-7 grid grid-cols-1 md:grid-cols-2 gap-6">
+            {steps.map((step, index) => (
+              <motion.div
+                key={step.title}
+                whileHover={{ y: -6 }}
+                className="rounded-[32px] bg-white border border-slate-200 p-7 shadow-lg"
+              >
+                <div className="flex items-center gap-4 mb-5">
+                  <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-700 flex items-center justify-center text-2xl">
+                    {step.icon}
+                  </div>
+
+                  <span className="text-xs uppercase tracking-[3px] font-black text-slate-400">
+                    Step {index + 1}
+                  </span>
+                </div>
+
+                <h3 className="text-2xl font-black text-slate-950">
+                  {step.title}
+                </h3>
+
+                <p className="text-slate-500 leading-7 mt-3">
+                  {step.description}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FEATURES */}
+      <section
+        id="features"
+        className="relative z-10 max-w-[1440px] mx-auto px-6 xl:px-10 pb-24"
+      >
+        <div className="text-center mb-14">
+          <div className="inline-flex items-center gap-3 bg-white border border-slate-200 px-5 py-3 rounded-full text-blue-700 font-black mb-5 shadow-sm">
+            <FaBolt />
+            Enterprise-ready recruitment suite
+          </div>
+
+          <h2 className="text-4xl md:text-6xl font-black mb-5 text-slate-950">
+            Designed for global recruitment teams.
           </h2>
 
-          <p className="text-gray-600 text-lg max-w-3xl mx-auto">
-            Une architecture complète avec frontend, backend, base de données,
-            API IA, tests, documentation Swagger et supervision technique.
+          <p className="text-slate-500 text-lg max-w-3xl mx-auto leading-8">
+            SmartRecruit AI regroupe les fonctionnalités essentielles d’une
+            solution internationale : IA, data, expérience candidat,
+            automatisation RH et supervision technique.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {features.map((feature, index) => (
             <motion.div
               key={feature.title}
-              initial={{
-                opacity: 0,
-                y: 30,
-              }}
-              whileInView={{
-                opacity: 1,
-                y: 0,
-              }}
-              viewport={{
-                once: true,
-              }}
-              transition={{
-                delay: index * 0.08,
-              }}
-              className="bg-white rounded-[30px] p-7 shadow-sm border border-gray-100 hover:-translate-y-2 hover:shadow-xl transition-all"
+              initial={{ opacity: 0, y: 24 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: index * 0.06 }}
+              whileHover={{ y: -8 }}
+              className="rounded-[32px] bg-white border border-slate-200 p-7 shadow-lg"
             >
               <div
                 className={`w-16 h-16 rounded-3xl flex items-center justify-center text-2xl mb-6 ${feature.color}`}
@@ -364,11 +482,11 @@ function Home() {
                 {feature.icon}
               </div>
 
-              <h3 className="text-2xl font-black text-[#064e3b] mb-3">
+              <h3 className="text-2xl font-black text-slate-950 mb-3">
                 {feature.title}
               </h3>
 
-              <p className="text-gray-500 leading-7">
+              <p className="text-slate-500 leading-7">
                 {feature.description}
               </p>
             </motion.div>
@@ -376,25 +494,31 @@ function Home() {
         </div>
       </section>
 
-      {/* ==================================================
-          STACK SECTION
-      ================================================== */}
-
-      <section className="max-w-7xl mx-auto px-8 pb-20">
-        <div className="bg-white rounded-[40px] p-8 border border-gray-100 shadow-sm">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 mb-8">
+      {/* ARCHITECTURE */}
+      <section
+        id="architecture"
+        className="relative z-10 max-w-[1440px] mx-auto px-6 xl:px-10 pb-24"
+      >
+        <div className="rounded-[44px] bg-white border border-slate-200 shadow-xl p-8 md:p-10">
+          <div className="flex flex-col xl:flex-row xl:items-end xl:justify-between gap-8 mb-10">
             <div>
-              <h2 className="text-4xl font-black text-[#071f19]">
-                Architecture technique moderne
+              <p className="text-blue-600 uppercase tracking-[3px] text-xs font-black mb-3">
+                Modern architecture
+              </p>
+
+              <h2 className="text-4xl md:text-5xl font-black text-slate-950">
+                Built with a professional fullstack foundation.
               </h2>
 
-              <p className="text-gray-500 mt-2">
-                Stack complète utilisée dans SmartRecruit AI.
+              <p className="text-slate-500 mt-4 max-w-3xl leading-8">
+                Une architecture complète avec frontend React, API Express,
+                PostgreSQL, authentification JWT, documentation Swagger,
+                monitoring et CI/CD.
               </p>
             </div>
 
-            <span className="bg-emerald-50 text-emerald-700 px-5 py-3 rounded-2xl font-black">
-              Fullstack + IA + DevOps
+            <span className="bg-slate-950 text-white px-5 py-3 rounded-2xl font-black">
+              Fullstack + AI + DevOps
             </span>
           </div>
 
@@ -402,62 +526,78 @@ function Home() {
             {stack.map((item) => (
               <div
                 key={item.label}
-                className="bg-[#f8fafc] rounded-2xl p-5 border border-gray-100"
+                className="rounded-[26px] bg-slate-50 border border-slate-200 p-6"
               >
-                <div className="text-emerald-700 text-2xl mb-4">
+                <div className="text-blue-600 text-2xl mb-5">
                   {item.icon}
                 </div>
 
-                <p className="text-sm text-gray-400">
+                <p className="text-xs text-slate-400 uppercase tracking-[2px] font-black">
                   {item.label}
                 </p>
 
-                <h3 className="font-black text-[#064e3b] mt-1">
+                <h3 className="font-black text-slate-950 mt-2">
                   {item.value}
                 </h3>
               </div>
             ))}
           </div>
-        </div>
-      </section>
 
-      {/* ==================================================
-          RNCP SECTION
-      ================================================== */}
-
-      <section className="max-w-7xl mx-auto px-8 pb-20">
-        <div className="bg-gradient-to-br from-[#031d16] via-[#062c22] to-[#0b3d2e] rounded-[44px] p-10 text-white shadow-xl relative overflow-hidden">
-          <div className="absolute right-[-80px] bottom-[-80px] w-72 h-72 bg-emerald-400/20 rounded-full blur-3xl"></div>
-
-          <div className="relative flex flex-col xl:flex-row xl:justify-between xl:items-start gap-8 mb-10">
+          <div className="mt-6 rounded-[30px] bg-slate-950 text-white p-7 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div>
-              <div className="inline-flex items-center gap-3 bg-white/10 px-5 py-3 rounded-full mb-6">
-                <FaShieldAlt className="text-emerald-300" />
+              <h3 className="text-2xl font-black">
+                Production-ready technical base
+              </h3>
 
-                <span className="font-black text-emerald-100">
-                  Couverture RNCP
-                </span>
-              </div>
-
-              <h2 className="text-5xl font-black mb-4">
-                Projet prêt pour la soutenance.
-              </h2>
-
-              <p className="text-emerald-100 leading-8 max-w-3xl">
-                Le projet présente des preuves techniques visibles : API REST,
-                documentation Swagger, CI/CD GitHub Actions, tests Jest,
-                PostgreSQL, Socket.io, monitoring et intelligence artificielle.
+              <p className="text-slate-300 mt-2 leading-7">
+                Tests Jest, Swagger, GitHub Actions, Socket.io, audit logs,
+                notifications persistantes et supervision backend.
               </p>
             </div>
 
-            <div className="bg-white/10 border border-white/10 rounded-3xl p-7 min-w-[230px]">
-              <p className="text-emerald-200">
-                État projet
-              </p>
+            <div className="bg-white/10 border border-white/10 px-5 py-4 rounded-2xl font-black flex items-center gap-3">
+              <FaCogs />
+              Connected Stack
+            </div>
+          </div>
+        </div>
+      </section>
 
-              <h3 className="text-4xl font-black mt-2">
-                Ready
-              </h3>
+      {/* RNCP */}
+      <section
+        id="rncp"
+        className="relative z-10 max-w-[1440px] mx-auto px-6 xl:px-10 pb-24"
+      >
+        <div className="relative overflow-hidden rounded-[44px] bg-gradient-to-br from-blue-600 via-indigo-700 to-violet-700 p-8 md:p-10 text-white shadow-2xl">
+          <div className="absolute right-[-100px] bottom-[-100px] w-96 h-96 bg-pink-400/25 rounded-full blur-3xl" />
+
+          <div className="relative grid grid-cols-1 xl:grid-cols-12 gap-8 items-start mb-10">
+            <div className="xl:col-span-8">
+              <div className="inline-flex items-center gap-3 bg-white/10 border border-white/10 px-5 py-3 rounded-full mb-6">
+                <FaShieldAlt className="text-cyan-200" />
+
+                <span className="font-black text-cyan-100">
+                  RNCP Technical Coverage
+                </span>
+              </div>
+
+              <h2 className="text-4xl md:text-5xl font-black mb-5">
+                A project ready for professional presentation.
+              </h2>
+
+              <p className="text-indigo-100 leading-8 max-w-4xl">
+                Le projet présente des preuves visibles : data engineering,
+                intégration IA, développement fullstack, CI/CD, monitoring,
+                audit logs, base de données, Socket.io et documentation API.
+              </p>
+            </div>
+
+            <div className="xl:col-span-4 rounded-[28px] bg-white/10 border border-white/10 p-6">
+              <p className="text-indigo-100 text-sm">Project status</p>
+              <h3 className="text-5xl font-black mt-2">Ready</h3>
+              <p className="text-indigo-200 mt-2">
+                Soutenance preparation
+              </p>
             </div>
           </div>
 
@@ -467,52 +607,131 @@ function Home() {
                 key={block}
                 className="bg-white/10 border border-white/10 rounded-3xl p-5"
               >
-                <FaCheckCircle className="text-emerald-300 text-2xl mb-4" />
+                <FaCheckCircle className="text-cyan-200 text-2xl mb-4" />
 
-                <h3 className="font-black text-lg">
-                  {block}
-                </h3>
+                <h3 className="font-black text-lg">{block}</h3>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ==================================================
-          FOOTER
-      ================================================== */}
-
-      <footer className="max-w-7xl mx-auto px-8 pb-10">
-        <div className="bg-white rounded-[30px] p-7 border border-gray-100 shadow-sm flex flex-col lg:flex-row justify-between items-start lg:items-center gap-5">
+      {/* CTA FOOTER */}
+      <footer className="relative z-10 max-w-[1440px] mx-auto px-6 xl:px-10 pb-10">
+        <div className="rounded-[36px] bg-white border border-slate-200 p-7 shadow-xl flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
           <div className="flex items-center gap-4">
-            <div className="bg-gradient-to-br from-[#0d2f24] to-[#134437] rounded-2xl p-2 border border-emerald-500/20">
+            <div className="w-14 h-14 rounded-2xl bg-slate-950 p-2">
               <img
                 src={logoSmartRecruit}
                 alt="SmartRecruit AI"
-                className="w-12 h-12 object-contain"
+                className="w-full h-full object-contain"
               />
             </div>
 
             <div>
-              <h3 className="text-2xl font-black text-[#064e3b]">
+              <h3 className="text-2xl font-black text-slate-950">
                 SmartRecruit AI
               </h3>
 
-              <p className="text-gray-500 mt-1">
-                Intelligent Recruitment Platform • Projet développé par Mohamed
-                Amine Essaouabi.
+              <p className="text-slate-500 mt-1">
+                Global recruitment intelligence platform • Projet développé par
+                Mohamed Amine Essaouabi.
               </p>
             </div>
           </div>
 
-          <Link
-            to="/login"
-            className="bg-[#064e3b] text-white px-6 py-4 rounded-2xl font-black hover:bg-[#043b2d] transition"
-          >
-            Accéder à la plateforme
-          </Link>
+          <div className="flex flex-wrap gap-3">
+            <Link
+              to="/login"
+              className="bg-slate-950 text-white px-6 py-4 rounded-2xl font-black hover:bg-blue-700 transition flex items-center gap-2"
+            >
+              Accéder à la plateforme
+              <FaArrowRight />
+            </Link>
+
+            <Link
+              to="/register"
+              className="bg-slate-100 text-slate-950 px-6 py-4 rounded-2xl font-black hover:bg-slate-200 transition"
+            >
+              Créer un compte
+            </Link>
+          </div>
         </div>
       </footer>
+    </div>
+  );
+}
+
+// ======================================================
+// SMALL COMPONENTS
+// ======================================================
+
+function TrustCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-[24px] bg-white border border-slate-200 p-5 shadow-sm">
+      <div className="text-blue-600 text-xl mb-3">{icon}</div>
+
+      <p className="text-slate-400 text-sm font-bold">{label}</p>
+
+      <h3 className="text-slate-950 font-black text-lg mt-1">{value}</h3>
+    </div>
+  );
+}
+
+function DarkMetric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+      <p className="text-xs text-slate-400">{label}</p>
+      <h4 className="text-2xl font-black mt-2">{value}</h4>
+    </div>
+  );
+}
+
+function MiniProductCard({
+  icon,
+  title,
+  text,
+  color,
+}: {
+  icon: ReactNode;
+  title: string;
+  text: string;
+  color: string;
+}) {
+  return (
+    <div className="rounded-[26px] bg-slate-50 border border-slate-200 p-5">
+      <div
+        className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl mb-4 ${color}`}
+      >
+        {icon}
+      </div>
+
+      <h4 className="font-black text-slate-950">{title}</h4>
+
+      <p className="text-sm text-slate-500 leading-6 mt-2">{text}</p>
+    </div>
+  );
+}
+
+function TrustStripItem({
+  icon,
+  label,
+}: {
+  icon: ReactNode;
+  label: string;
+}) {
+  return (
+    <div className="flex items-center justify-center gap-3 text-slate-700 font-black">
+      <span className="text-blue-600">{icon}</span>
+      {label}
     </div>
   );
 }

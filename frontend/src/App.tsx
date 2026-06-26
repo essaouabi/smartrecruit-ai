@@ -21,6 +21,8 @@ import AIAssistant from "./pages/recruiter/AIAssistant";
 import Monitoring from "./pages/recruiter/Monitoring";
 import DataPipeline from "./pages/recruiter/DataPipeline";
 import AuditLogs from "./pages/recruiter/AuditLogs";
+import Notifications from "./pages/recruiter/Notifications";
+import IncidentCenter from "./pages/recruiter/IncidentCenter";
 
 import CandidateDashboard from "./pages/candidate/CandidateDashboard";
 import CandidateProfile from "./pages/candidate/CandidateProfile";
@@ -123,6 +125,16 @@ function App() {
           }
         />
 
+        {/* NOUVELLE ROUTE : INCIDENT CENTER */}
+        <Route
+          path="/incident-center"
+          element={
+            <ProtectedRoute>
+              <IncidentCenter />
+            </ProtectedRoute>
+          }
+        />
+
         <Route
           path="/candidates"
           element={
@@ -209,6 +221,15 @@ function App() {
           element={
             <ProtectedRoute>
               <AuditLogs />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/notifications"
+          element={
+            <ProtectedRoute>
+              <Notifications />
             </ProtectedRoute>
           }
         />

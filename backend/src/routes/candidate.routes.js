@@ -1,5 +1,6 @@
 // ======================================================
 // ROUTES CANDIDATES - SMARTRECRUIT AI
+// RGPD READY
 // ======================================================
 
 const express = require("express");
@@ -14,6 +15,7 @@ const {
   getCandidates,
   getCandidateById,
   updateCandidateDecision,
+  anonymizeCandidate,
   deleteCandidate,
 } = require("../controllers/candidate.controller");
 
@@ -69,7 +71,18 @@ router.patch(
 );
 
 // ===============================
-// DELETE CANDIDATE
+// ANONYMIZE CANDIDATE - RGPD
+// ===============================
+
+router.patch(
+  "/:id/anonymize",
+  authMiddleware,
+  roleMiddleware(["recruiter"]),
+  anonymizeCandidate
+);
+
+// ===============================
+// DELETE CANDIDATE - SUPPRESSION LOGIQUE RGPD
 // ===============================
 
 router.delete(
@@ -83,4 +96,4 @@ router.delete(
 // EXPORT
 // ===============================
 
-module.exports = router;
+module.exports = router;                                                                                      

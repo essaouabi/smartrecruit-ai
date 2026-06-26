@@ -39,6 +39,8 @@ const applicationRoutes = require("./routes/application.routes");
 const scrapingRoutes = require("./routes/scraping.routes");
 const auditRoutes = require("./routes/audit.routes");
 const notificationRoutes = require("./routes/notification.routes");
+const incidentRoutes = require("./routes/incident.routes");
+const aiMonitoringRoutes = require("./routes/aiMonitoring.routes"); // <-- Ajouté ici
 
 // =====================================================
 // SERVICES
@@ -47,6 +49,7 @@ const notificationRoutes = require("./routes/notification.routes");
 const logger = require("./services/logger.service");
 const { logAudit } = require("./services/auditLog.service");
 const { createNotification } = require("./services/notification.service");
+const { createIncident } = require("./services/incident.service");
 
 // =====================================================
 // CRÉATION DE L'APPLICATION EXPRESS
@@ -145,6 +148,8 @@ app.get("/", (req, res) => {
     realtime: "enabled",
     auditLogs: "enabled",
     notifications: "enabled",
+    incidentCenter: "enabled",
+    aiMonitoring: "enabled", // <-- Ajouté ici
   });
 });
 
@@ -164,6 +169,8 @@ app.use("/api/applications", applicationRoutes);
 app.use("/api/scraping", scrapingRoutes);
 app.use("/api/audit", auditRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/incidents", incidentRoutes);
+app.use("/api/ai-monitoring", aiMonitoringRoutes); // <-- Ajouté ici
 
 // =====================================================
 // GESTION DES ROUTES INEXISTANTES
@@ -181,7 +188,9 @@ app.use((req, res) => {
 // GESTION GLOBALE DES ERREURS
 // =====================================================
 
-app.use((err, req, res, _next) => {
+app.use(async (err, req, res, _next) => {
+  console.error("Erreur serveur :", err);
+
   logger.error({
     message: err.message,
     route: req.originalUrl,
@@ -189,28 +198,53 @@ app.use((err, req, res, _next) => {
     date: new Date().toISOString(),
   });
 
-  // Enregistrement automatique des erreurs importantes dans audit_logs
-  logAudit({
-    req,
-    userId: req.user?.id || req.user?.userId || null,
-    userRole: req.user?.role || null,
-    action: "BACKEND_ERROR",
-    entity: "server",
-    entityId: null,
-    description: `${req.method} ${req.originalUrl} - ${err.message}`,
-  });
+  const userId = req.user?.id || req.user?.userId || null;
+  const userRole = req.user?.role || null;
 
-  // Création d'une notification persistante en base PostgreSQL
-  createNotification({
-    req,
-    userId: req.user?.id || req.user?.userId || null,
-    userRole: req.user?.role || null,
-    type: "error",
-    title: "Erreur backend détectée",
-    message: err.message || "Une erreur serveur a été détectée.",
-    entity: "server",
-    entityId: null,
-  });
+  // Audit log + notification + incident PostgreSQL
+  await Promise.allSettled([
+    logAudit({
+      req,
+      userId,
+      userRole,
+      action: "BACKEND_ERROR",
+      entity: "server",
+      entityId: null,
+      description: `${req.method} ${req.originalUrl} - ${err.message}`,
+    }),
+
+    createNotification({
+      req,
+      userId,
+      userRole,
+      type: "error",
+      title: "Erreur backend détectée",
+      message: err.message || "Une erreur serveur a été détectée.",
+      entity: "server",
+      entityId: null,
+    }),
+
+    createIncident({
+      req,
+      title: "Erreur backend détectée",
+      description:
+        err.message || "Une erreur serveur a été détectée par SmartRecruit AI.",
+      severity: "high",
+      status: "open",
+      source: "backend",
+      entity: "server",
+      entityId: null,
+      detectedBy: "Express Error Handler",
+      rootCause: "Erreur non capturée dans une route backend.",
+      solution:
+        "Analyser les logs backend, identifier la route concernée et appliquer une correction.",
+      technicalLogs: `${req.method} ${req.originalUrl} - ${
+        err.stack || err.message
+      }`,
+      userId,
+      userRole,
+    }),
+  ]);
 
   res.status(500).json({
     status: "error",
@@ -239,6 +273,7 @@ const startServer = async () => {
       console.log("Socket.io realtime enabled");
       console.log("Audit logs enabled");
       console.log("Notifications enabled");
+      console.log("Incident Center enabled");
       console.log(`Swagger API Docs: http://localhost:${PORT}/api-docs`);
     });
   } catch (error) {

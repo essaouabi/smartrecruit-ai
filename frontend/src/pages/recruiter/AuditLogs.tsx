@@ -1,4 +1,9 @@
-import { useEffect, useState, type ReactNode } from "react";
+// ======================================================
+// AUDIT LOGS PAGE - SMARTRECRUIT AI
+// Clean Premium Version / Jury Ready
+// ======================================================
+
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 
 import DashboardLayout from "../../layouts/DashboardLayout";
@@ -15,7 +20,16 @@ import {
   FaServer,
   FaCheckCircle,
   FaExclamationTriangle,
+  FaFilter,
+  FaFingerprint,
+  FaLayerGroup,
+  FaBolt,
+  FaEye,
 } from "react-icons/fa";
+
+// ======================================================
+// TYPES
+// ======================================================
 
 type AuditLog = {
   id: number;
@@ -29,14 +43,27 @@ type AuditLog = {
   created_at: string;
 };
 
+type AuditFilter = "all" | "created" | "updated" | "error" | "system";
+
+// ======================================================
+// COMPONENT
+// ======================================================
+
 function AuditLogs() {
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
   const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState<AuditFilter>("all");
+
+  // ======================================================
+  // API
+  // ======================================================
 
   const fetchAuditLogs = async () => {
     try {
-      setLoading(true);
+      setRefreshing(true);
 
       const response = await api.get("/audit");
 
@@ -54,6 +81,7 @@ function AuditLogs() {
       );
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -61,17 +89,17 @@ function AuditLogs() {
     fetchAuditLogs();
   }, []);
 
-  const filteredLogs = logs.filter((log) => {
-    const value = search.toLowerCase();
+  // ======================================================
+  // HELPERS
+  // ======================================================
 
-    return (
-      log.action?.toLowerCase().includes(value) ||
-      log.entity?.toLowerCase().includes(value) ||
-      log.description?.toLowerCase().includes(value) ||
-      log.user_role?.toLowerCase().includes(value) ||
-      log.ip_address?.toLowerCase().includes(value)
-    );
-  });
+  const getActionCategory = (action: string): AuditFilter => {
+    if (action.includes("ERROR")) return "error";
+    if (action.includes("UPDATED")) return "updated";
+    if (action.includes("CREATED")) return "created";
+
+    return "system";
+  };
 
   const getActionLabel = (action: string) => {
     if (action === "APPLICATION_CREATED") return "Candidature créée";
@@ -85,337 +113,621 @@ function AuditLogs() {
 
   const getActionStyle = (action: string) => {
     if (action.includes("ERROR")) {
-      return "bg-red-100 text-red-700 border-red-200";
+      return {
+        badge: "bg-red-100 text-red-700 border-red-200",
+        iconBox: "bg-red-100 text-red-700",
+        line: "bg-red-500",
+        icon: <FaExclamationTriangle />,
+      };
     }
 
     if (action.includes("UPDATED")) {
-      return "bg-blue-100 text-blue-700 border-blue-200";
+      return {
+        badge: "bg-blue-100 text-blue-700 border-blue-200",
+        iconBox: "bg-blue-100 text-blue-700",
+        line: "bg-blue-500",
+        icon: <FaSyncAlt />,
+      };
     }
 
     if (action.includes("CREATED")) {
-      return "bg-emerald-100 text-emerald-700 border-emerald-200";
+      return {
+        badge: "bg-emerald-100 text-emerald-700 border-emerald-200",
+        iconBox: "bg-emerald-100 text-emerald-700",
+        line: "bg-emerald-500",
+        icon: <FaCheckCircle />,
+      };
     }
 
-    return "bg-slate-100 text-slate-700 border-slate-200";
+    return {
+      badge: "bg-slate-100 text-slate-700 border-slate-200",
+      iconBox: "bg-slate-100 text-slate-700",
+      line: "bg-slate-500",
+      icon: <FaHistory />,
+    };
   };
 
-  const getActionIcon = (action: string) => {
-    if (action.includes("ERROR")) {
-      return <FaExclamationTriangle />;
-    }
+  const formatDate = (date?: string) => {
+    if (!date) return "Non renseignée";
 
-    if (action.includes("UPDATED")) {
-      return <FaSyncAlt />;
-    }
-
-    if (action.includes("CREATED")) {
-      return <FaCheckCircle />;
-    }
-
-    return <FaHistory />;
+    return new Date(date).toLocaleString("fr-FR");
   };
+
+  // ======================================================
+  // DATA
+  // ======================================================
+
+  const filteredLogs = useMemo(() => {
+    return logs.filter((log) => {
+      const value = search.toLowerCase();
+
+      const matchesSearch =
+        log.action?.toLowerCase().includes(value) ||
+        log.entity?.toLowerCase().includes(value) ||
+        log.description?.toLowerCase().includes(value) ||
+        log.user_role?.toLowerCase().includes(value) ||
+        log.ip_address?.toLowerCase().includes(value);
+
+      const category = getActionCategory(log.action || "");
+
+      const matchesFilter = filter === "all" || category === filter;
+
+      return matchesSearch && matchesFilter;
+    });
+  }, [logs, search, filter]);
 
   const totalLogs = logs.length;
 
-  const updateLogs = logs.filter((log) =>
-    log.action.includes("UPDATED")
-  ).length;
-
   const createdLogs = logs.filter((log) =>
     log.action.includes("CREATED")
+  ).length;
+
+  const updateLogs = logs.filter((log) =>
+    log.action.includes("UPDATED")
   ).length;
 
   const errorLogs = logs.filter((log) =>
     log.action.includes("ERROR")
   ).length;
 
+  const systemLogs = Math.max(
+    0,
+    totalLogs - createdLogs - updateLogs - errorLogs
+  );
+
+  const lastLog = logs[0];
+
+  // ======================================================
+  // UI
+  // ======================================================
+
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <motion.div
-          initial={{
-            opacity: 0,
-            y: 25,
-          }}
-          animate={{
-            opacity: 1,
-            y: 0,
-          }}
-          transition={{
-            duration: 0.5,
-          }}
-          className="relative overflow-hidden rounded-[36px] bg-[#020617] p-10 text-white shadow-2xl border border-white/10"
+        {/* HERO */}
+        <motion.section
+          initial={{ opacity: 0, y: 22 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.45 }}
+          className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-[#020617] via-[#041337] to-[#06384a] p-7 text-white shadow-2xl"
         >
-          <div className="absolute top-[-90px] right-[-90px] w-96 h-96 bg-emerald-500/30 blur-3xl rounded-full" />
-          <div className="absolute bottom-[-90px] left-[-90px] w-96 h-96 bg-blue-500/20 blur-3xl rounded-full" />
+          <div className="absolute top-[-90px] right-[-90px] w-80 h-80 bg-cyan-500/20 rounded-full blur-3xl" />
+          <div className="absolute bottom-[-100px] left-[-100px] w-80 h-80 bg-indigo-500/20 rounded-full blur-3xl" />
 
-          <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div>
-              <span className="inline-flex items-center gap-2 bg-emerald-400/10 border border-emerald-400/20 text-emerald-200 px-4 py-2 rounded-full text-sm font-black">
-                <FaShieldAlt />
-                Traçabilité & sécurité
-              </span>
+          <div className="relative z-10 grid grid-cols-1 xl:grid-cols-12 gap-6 items-center">
+            <div className="xl:col-span-7">
+              <div className="inline-flex items-center gap-2 bg-white/10 border border-white/10 rounded-full px-4 py-2 mb-4">
+                <FaShieldAlt className="text-cyan-300" />
 
-              <h1 className="text-5xl font-black mt-6 leading-tight">
+                <span className="text-xs uppercase tracking-[3px] font-black text-cyan-200">
+                  SmartRecruit Audit Security
+                </span>
+              </div>
+
+              <h1 className="text-4xl md:text-5xl font-black leading-tight">
                 Audit Logs
+                <span className="block bg-gradient-to-r from-cyan-300 to-blue-500 bg-clip-text text-transparent">
+                  traçabilité & sécurité
+                </span>
               </h1>
 
-              <p className="text-slate-300 mt-4 text-lg max-w-3xl">
-                Suivi des actions importantes réalisées dans SmartRecruit AI :
-                candidatures, changements de statut, erreurs backend et activité
-                utilisateur.
+              <p className="text-slate-300 max-w-3xl mt-4 leading-7">
+                Suivi des actions sensibles dans SmartRecruit AI : créations de
+                candidatures, modifications de statuts, erreurs backend,
+                identité utilisateur, adresse IP et horodatage.
               </p>
             </div>
 
-            <button
-              type="button"
-              onClick={fetchAuditLogs}
-              className="bg-emerald-400 text-slate-950 px-6 py-4 rounded-2xl font-black flex items-center justify-center gap-2 hover:bg-emerald-300 transition"
-            >
-              <FaSyncAlt />
-              Actualiser
-            </button>
+            <div className="xl:col-span-5 grid grid-cols-2 gap-3">
+              <HeroMetric title="Total logs" value={totalLogs} />
+              <HeroMetric title="Créations" value={createdLogs} />
+              <HeroMetric title="Modifications" value={updateLogs} />
+              <HeroMetric title="Erreurs" value={errorLogs} />
+            </div>
           </div>
-        </motion.div>
+        </motion.section>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-          <StatCard
+        {/* KPI */}
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <MiniStat
             title="Total logs"
             value={totalLogs}
             icon={<FaHistory />}
-            gradient="from-emerald-500 to-teal-700"
+            color="bg-cyan-50 text-cyan-700"
           />
 
-          <StatCard
+          <MiniStat
             title="Créations"
             value={createdLogs}
             icon={<FaCheckCircle />}
-            gradient="from-green-500 to-emerald-700"
+            color="bg-emerald-50 text-emerald-700"
           />
 
-          <StatCard
+          <MiniStat
             title="Modifications"
             value={updateLogs}
             icon={<FaSyncAlt />}
-            gradient="from-blue-500 to-cyan-700"
+            color="bg-blue-50 text-blue-700"
           />
 
-          <StatCard
+          <MiniStat
             title="Erreurs"
             value={errorLogs}
             icon={<FaExclamationTriangle />}
-            gradient="from-red-500 to-rose-700"
+            color="bg-red-50 text-red-700"
           />
         </div>
 
-        <div className="bg-white/90 backdrop-blur-xl rounded-[32px] p-5 border border-slate-200 shadow-xl">
-          <div className="flex items-center gap-3 border border-slate-200 rounded-2xl px-4 py-4 bg-slate-50">
-            <FaSearch className="text-slate-400" />
+        {/* MAIN GRID */}
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+          {/* LEFT PANEL */}
+          <div className="xl:col-span-4 space-y-5">
+            <PanelCard title="Recherche & filtres" subtitle="Filtrer les actions">
+              <div className="space-y-4">
+                <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-3">
+                  <FaSearch className="text-slate-400" />
 
-            <input
-              type="text"
-              placeholder="Rechercher par action, description, rôle, IP ou entité..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="bg-transparent outline-none w-full"
-            />
+                  <input
+                    type="text"
+                    placeholder="Action, rôle, IP, entité..."
+                    value={search}
+                    onChange={(event) => setSearch(event.target.value)}
+                    className="bg-transparent outline-none w-full text-sm"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <FilterButton
+                    label="Tous"
+                    active={filter === "all"}
+                    onClick={() => setFilter("all")}
+                  />
+
+                  <FilterButton
+                    label="Créations"
+                    active={filter === "created"}
+                    onClick={() => setFilter("created")}
+                  />
+
+                  <FilterButton
+                    label="Modifs"
+                    active={filter === "updated"}
+                    onClick={() => setFilter("updated")}
+                  />
+
+                  <FilterButton
+                    label="Erreurs"
+                    active={filter === "error"}
+                    onClick={() => setFilter("error")}
+                  />
+
+                  <FilterButton
+                    label="Système"
+                    active={filter === "system"}
+                    onClick={() => setFilter("system")}
+                  />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={fetchAuditLogs}
+                  className="w-full px-4 py-3 rounded-2xl bg-[#050b16] text-white font-black text-sm hover:bg-slate-800 transition flex items-center justify-center gap-2"
+                >
+                  <FaSyncAlt className={refreshing ? "animate-spin" : ""} />
+                  Actualiser
+                </button>
+              </div>
+            </PanelCard>
+
+            <PanelCard title="État audit" subtitle="Sécurité applicative">
+              <div className="space-y-3">
+                <StatusLine
+                  icon={<FaDatabase />}
+                  label="Stockage"
+                  value="PostgreSQL"
+                />
+
+                <StatusLine
+                  icon={<FaFingerprint />}
+                  label="Traçabilité"
+                  value="Active"
+                />
+
+                <StatusLine
+                  icon={<FaServer />}
+                  label="Backend"
+                  value="Express"
+                />
+
+                <StatusLine
+                  icon={<FaShieldAlt />}
+                  label="Sécurité"
+                  value={errorLogs === 0 ? "Stable" : "À vérifier"}
+                />
+              </div>
+            </PanelCard>
+
+            <PanelCard title="Dernier événement" subtitle="Action la plus récente">
+              {!lastLog ? (
+                <div className="rounded-[20px] bg-slate-50 border border-slate-200 p-5 text-sm text-slate-500 font-bold">
+                  Aucun événement pour le moment.
+                </div>
+              ) : (
+                <div className="rounded-[22px] bg-cyan-50 border border-cyan-100 p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    <FaBolt className="text-cyan-700" />
+
+                    <h3 className="font-black text-cyan-900">
+                      {getActionLabel(lastLog.action)}
+                    </h3>
+                  </div>
+
+                  <p className="text-sm text-cyan-900 leading-7">
+                    {lastLog.description ||
+                      "Action enregistrée dans le système."}
+                  </p>
+
+                  <p className="text-xs text-cyan-700 font-black mt-4">
+                    {formatDate(lastLog.created_at)}
+                  </p>
+                </div>
+              )}
+            </PanelCard>
+          </div>
+
+          {/* RIGHT PANEL */}
+          <div className="xl:col-span-8">
+            <PanelCard
+              title="Flux d’audit"
+              subtitle={`${filteredLogs.length} log(s) affiché(s)`}
+              action={
+                <span className="bg-cyan-50 text-cyan-700 border border-cyan-100 px-4 py-2 rounded-full text-xs font-black">
+                  Audit Trail
+                </span>
+              }
+            >
+              {loading && (
+                <div className="bg-slate-50 rounded-[28px] p-12 text-center border border-slate-200">
+                  <FaHistory className="text-6xl text-cyan-600 mx-auto mb-4 animate-pulse" />
+
+                  <h2 className="text-2xl font-black text-slate-900">
+                    Chargement des audit logs...
+                  </h2>
+                </div>
+              )}
+
+              {!loading && logs.length === 0 && (
+                <div className="bg-slate-50 rounded-[28px] p-12 text-center border border-slate-200">
+                  <FaDatabase className="text-6xl text-slate-300 mx-auto mb-4" />
+
+                  <h2 className="text-2xl font-black text-slate-900">
+                    Aucun audit log pour le moment
+                  </h2>
+
+                  <p className="text-slate-500 mt-2">
+                    Les actions importantes apparaîtront ici automatiquement.
+                  </p>
+                </div>
+              )}
+
+              {!loading && filteredLogs.length === 0 && logs.length > 0 && (
+                <div className="bg-slate-50 rounded-[28px] p-12 text-center border border-slate-200">
+                  <FaSearch className="text-6xl text-slate-300 mx-auto mb-4" />
+
+                  <h2 className="text-2xl font-black text-slate-900">
+                    Aucun résultat trouvé
+                  </h2>
+
+                  <p className="text-slate-500 mt-2">
+                    Essayez une autre recherche ou un autre filtre.
+                  </p>
+                </div>
+              )}
+
+              {!loading && filteredLogs.length > 0 && (
+                <div className="space-y-4">
+                  {filteredLogs.map((log, index) => {
+                    const style = getActionStyle(log.action);
+
+                    return (
+                      <motion.div
+                        key={log.id}
+                        initial={{ opacity: 0, y: 16 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: Math.min(index * 0.03, 0.3) }}
+                        whileHover={{ y: -3 }}
+                        className="relative overflow-hidden rounded-[24px] border border-slate-200 bg-white p-5 shadow-sm"
+                      >
+                        <div
+                          className={`absolute left-0 top-0 h-full w-1.5 ${style.line}`}
+                        />
+
+                        <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-5 pl-3">
+                          <div className="flex items-start gap-4 min-w-0">
+                            <div
+                              className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shrink-0 ${style.iconBox}`}
+                            >
+                              {style.icon}
+                            </div>
+
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap gap-2 items-center mb-2">
+                                <span
+                                  className={`px-3 py-1 rounded-full text-xs font-black border ${style.badge}`}
+                                >
+                                  {getActionLabel(log.action)}
+                                </span>
+
+                                <span className="bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-xs font-black border border-slate-200">
+                                  {log.entity || "system"}
+                                </span>
+
+                                {log.entity_id !== null &&
+                                  log.entity_id !== undefined && (
+                                    <span className="bg-violet-100 text-violet-700 px-3 py-1 rounded-full text-xs font-black border border-violet-200">
+                                      ID #{log.entity_id}
+                                    </span>
+                                  )}
+                              </div>
+
+                              <h2 className="text-lg font-black text-slate-900 leading-7">
+                                {log.description ||
+                                  "Action enregistrée dans le système."}
+                              </h2>
+
+                              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+                                <InfoBox
+                                  icon={<FaUserTie />}
+                                  label="Utilisateur"
+                                  value={
+                                    log.user_id
+                                      ? `ID ${log.user_id} - ${
+                                          log.user_role || "role inconnu"
+                                        }`
+                                      : "Système"
+                                  }
+                                />
+
+                                <InfoBox
+                                  icon={<FaServer />}
+                                  label="Adresse IP"
+                                  value={log.ip_address || "Non renseignée"}
+                                />
+
+                                <InfoBox
+                                  icon={<FaClock />}
+                                  label="Date"
+                                  value={formatDate(log.created_at)}
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="shrink-0">
+                            <div className="px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-700 font-black text-sm flex items-center gap-2">
+                              <FaEye />
+                              Log #{log.id}
+                            </div>
+                          </div>
+                        </div>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </PanelCard>
           </div>
         </div>
 
-        {loading && (
-          <div className="bg-white rounded-[32px] p-10 shadow-xl border text-center">
-            <FaHistory className="text-6xl text-emerald-600 mx-auto mb-4 animate-pulse" />
-
-            <h2 className="text-2xl font-black">
-              Chargement des audit logs...
-            </h2>
+        {/* RNCP SUMMARY */}
+        <PanelCard
+          title="Synthèse RNCP — Audit & sécurité"
+          subtitle="Cette page démontre la traçabilité des actions sensibles"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <StatusBox icon={<FaShieldAlt />} label="Sécurité" value="Audit" />
+            <StatusBox icon={<FaDatabase />} label="Stockage" value="PostgreSQL" />
+            <StatusBox icon={<FaUserTie />} label="Utilisateur" value="Identifié" />
+            <StatusBox icon={<FaClock />} label="Horodatage" value="Présent" />
+            <StatusBox icon={<FaLayerGroup />} label="Entité" value="Traçable" />
           </div>
-        )}
-
-        {!loading && logs.length === 0 && (
-          <div className="bg-white rounded-[32px] p-10 shadow-xl border text-center">
-            <FaDatabase className="text-6xl text-gray-300 mx-auto mb-4" />
-
-            <h2 className="text-2xl font-black">
-              Aucun audit log pour le moment
-            </h2>
-
-            <p className="text-gray-500 mt-2">
-              Les actions importantes apparaîtront ici automatiquement.
-            </p>
-          </div>
-        )}
-
-        {!loading && filteredLogs.length === 0 && logs.length > 0 && (
-          <div className="bg-white rounded-[32px] p-10 shadow-xl border text-center">
-            <FaSearch className="text-6xl text-gray-300 mx-auto mb-4" />
-
-            <h2 className="text-2xl font-black">
-              Aucun résultat trouvé
-            </h2>
-
-            <p className="text-gray-500 mt-2">
-              Essayez une autre recherche.
-            </p>
-          </div>
-        )}
-
-        {!loading && filteredLogs.length > 0 && (
-          <div className="space-y-4">
-            {filteredLogs.map((log, index) => (
-              <motion.div
-                key={log.id}
-                initial={{
-                  opacity: 0,
-                  y: 20,
-                }}
-                animate={{
-                  opacity: 1,
-                  y: 0,
-                }}
-                transition={{
-                  duration: 0.3,
-                  delay: index * 0.03,
-                }}
-                className="bg-white rounded-[28px] p-6 shadow-xl border border-slate-100 hover:shadow-2xl transition"
-              >
-                <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-5">
-                  <div className="flex items-start gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-[#052e2b] text-white flex items-center justify-center text-2xl shadow-lg">
-                      {getActionIcon(log.action)}
-                    </div>
-
-                    <div className="flex-1">
-                      <div className="flex flex-wrap gap-2 items-center">
-                        <span
-                          className={`px-4 py-2 rounded-full text-xs font-black border ${getActionStyle(
-                            log.action
-                          )}`}
-                        >
-                          {getActionLabel(log.action)}
-                        </span>
-
-                        <span className="bg-slate-100 text-slate-700 px-4 py-2 rounded-full text-xs font-black border border-slate-200">
-                          {log.entity || "system"}
-                        </span>
-
-                        {log.entity_id !== null &&
-                          log.entity_id !== undefined && (
-                            <span className="bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-xs font-black border border-purple-200">
-                              ID #{log.entity_id}
-                            </span>
-                          )}
-                      </div>
-
-                      <h2 className="text-xl font-black text-[#052e2b] mt-4">
-                        {log.description ||
-                          "Action enregistrée dans le système."}
-                      </h2>
-
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-5 text-sm">
-                        <InfoBox
-                          icon={<FaUserTie />}
-                          label="Utilisateur"
-                          value={
-                            log.user_id
-                              ? `ID ${log.user_id} - ${
-                                  log.user_role || "role inconnu"
-                                }`
-                              : "Système"
-                          }
-                        />
-
-                        <InfoBox
-                          icon={<FaServer />}
-                          label="Adresse IP"
-                          value={log.ip_address || "Non renseignée"}
-                        />
-
-                        <InfoBox
-                          icon={<FaClock />}
-                          label="Date"
-                          value={
-                            log.created_at
-                              ? new Date(log.created_at).toLocaleString(
-                                  "fr-FR"
-                                )
-                              : "Non renseignée"
-                          }
-                        />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        )}
+        </PanelCard>
       </div>
     </DashboardLayout>
   );
 }
 
-type StatCardProps = {
-  title: string;
-  value: number;
-  icon: ReactNode;
-  gradient: string;
-};
+// ======================================================
+// SMALL COMPONENTS
+// ======================================================
 
-function StatCard({
+function HeroMetric({
+  title,
+  value,
+}: {
+  title: string;
+  value: number | string;
+}) {
+  return (
+    <div className="rounded-[22px] border border-white/10 bg-white/5 p-4 backdrop-blur-xl">
+      <p className="text-[10px] uppercase tracking-[3px] text-slate-400 font-black">
+        {title}
+      </p>
+
+      <h3 className="text-3xl font-black mt-2 text-white">{value}</h3>
+    </div>
+  );
+}
+
+function MiniStat({
   title,
   value,
   icon,
-  gradient,
-}: StatCardProps) {
+  color,
+}: {
+  title: string;
+  value: number;
+  icon: ReactNode;
+  color: string;
+}) {
   return (
     <motion.div
-      whileHover={{
-        y: -6,
-        scale: 1.02,
-      }}
-      className={`relative overflow-hidden rounded-[28px] bg-gradient-to-br ${gradient} p-6 text-white shadow-xl`}
+      whileHover={{ y: -4 }}
+      className="bg-white rounded-[24px] p-5 border border-slate-200 shadow-lg"
     >
-      <div className="absolute top-[-40px] right-[-30px] w-32 h-32 bg-white/20 rounded-full blur-2xl" />
-
-      <div className="relative z-10">
-        <div className="text-3xl mb-4 opacity-90">
+      <div className="flex items-center gap-4">
+        <div
+          className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${color}`}
+        >
           {icon}
         </div>
 
-        <p className="text-white/80 text-sm font-bold">
-          {title}
-        </p>
+        <div>
+          <p className="text-xs uppercase tracking-[2px] text-slate-400 font-black">
+            {title}
+          </p>
 
-        <h2 className="text-4xl font-black mt-1">
-          {value}
-        </h2>
+          <h3 className="text-3xl font-black text-slate-900">{value}</h3>
+        </div>
       </div>
     </motion.div>
   );
 }
 
-type InfoBoxProps = {
-  icon: ReactNode;
+function PanelCard({
+  title,
+  subtitle,
+  children,
+  action,
+}: {
+  title: string;
+  subtitle: string;
+  children: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="rounded-[28px] border border-slate-200 bg-white p-5 shadow-lg">
+      <div className="flex items-start justify-between gap-4 mb-5">
+        <div>
+          <h3 className="text-xl font-black text-slate-900">{title}</h3>
+          <p className="text-sm text-slate-500 mt-1">{subtitle}</p>
+        </div>
+
+        {action}
+      </div>
+
+      {children}
+    </div>
+  );
+}
+
+function FilterButton({
+  label,
+  active,
+  onClick,
+}: {
   label: string;
-  value: string;
-};
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`px-4 py-3 rounded-2xl font-black text-sm transition ${
+        active
+          ? "bg-cyan-500 text-white shadow-lg"
+          : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
 
 function InfoBox({
   icon,
   label,
   value,
-}: InfoBoxProps) {
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
   return (
-    <div className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
-      <div className="flex items-center gap-2 text-slate-500 font-bold">
+    <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4">
+      <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[1.5px] text-slate-400">
         {icon}
-        <span>{label}</span>
+        {label}
       </div>
 
-      <p className="font-black text-[#052e2b] mt-2 break-all">
+      <p className="text-sm font-black text-slate-800 mt-2 break-all">
         {value}
       </p>
+    </div>
+  );
+}
+
+function StatusLine({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="flex items-center justify-between rounded-[18px] bg-slate-50 border border-slate-200 p-4">
+      <div className="flex items-center gap-3">
+        <div className="text-cyan-600">{icon}</div>
+
+        <span className="text-sm font-bold text-slate-700">{label}</span>
+      </div>
+
+      <span className="text-sm font-black text-emerald-600">{value}</span>
+    </div>
+  );
+}
+
+function StatusBox({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-[22px] bg-slate-50 border border-slate-200 p-5">
+      <div className="text-cyan-600 text-2xl mb-3">{icon}</div>
+
+      <p className="text-slate-500 text-xs uppercase tracking-[2px] font-black">
+        {label}
+      </p>
+
+      <h3 className="text-lg font-black text-slate-900 mt-2">{value}</h3>
     </div>
   );
 }

@@ -5,6 +5,15 @@
 const pool = require("../config/db");
 
 // ===============================
+// IMPORT AI MONITORING SERVICE
+// ===============================
+
+const {
+  logAISuccess,
+  logAIError,
+} = require("../services/aiMonitoring.service");
+
+// ===============================
 // SKILLS DATABASE
 // ===============================
 
@@ -179,6 +188,8 @@ const detectPhone = (cvText) => {
 // ===============================
 
 const analyzeCV = async (req, res) => {
+  const startTime = Date.now();
+
   try {
     const { cvText, jobContext } = req.body;
 
@@ -284,9 +295,7 @@ const analyzeCV = async (req, res) => {
     let score = 35;
 
     score += detectedSkills.length * 3;
-
     score += matchingSkills.length * 12;
-
     score += yearsExperience * 2;
 
     if (hasProjects) {
@@ -463,6 +472,28 @@ Le score IA global est de ${score}%.
     );
 
     // ===============================
+    // AI MONITORING LOG
+    // ===============================
+
+    await logAISuccess({
+      req,
+      endpoint: "/api/cv/analyze",
+      model: "SmartRecruit CV Scoring Engine",
+      score,
+      decision,
+      responseTimeMs: Date.now() - startTime,
+      cvName: candidateName,
+      jobContext: jobContext || "Analyse CV sans contexte poste",
+      promptTokens: Math.round(cvText.length / 4),
+      completionTokens: Math.round(summary.length / 4),
+      totalTokens:
+        Math.round(cvText.length / 4) +
+        Math.round(summary.length / 4),
+      userId: req.user?.id || req.user?.userId || null,
+      userRole: req.user?.role || null,
+    });
+
+    // ===============================
     // RESPONSE
     // ===============================
 
@@ -513,6 +544,18 @@ Le score IA global est de ${score}%.
     });
   } catch (error) {
     console.log(error);
+
+    await logAIError({
+      req,
+      endpoint: "/api/cv/analyze",
+      model: "SmartRecruit CV Scoring Engine",
+      responseTimeMs: Date.now() - startTime,
+      errorMessage: error.message || "Erreur serveur analyse CV",
+      cvName: "Analyse CV texte",
+      jobContext: req.body?.jobContext || null,
+      userId: req.user?.id || req.user?.userId || null,
+      userRole: req.user?.role || null,
+    });
 
     res.status(500).json({
       message:

@@ -6,19 +6,28 @@ const pdfParse = require("pdf-parse");
 const pool = require("../config/db");
 
 // ===============================
+// IMPORT AI MONITORING SERVICE
+// ===============================
+
+const {
+  logAISuccess,
+  logAIError,
+} = require("../services/aiMonitoring.service");
+
+// ===============================
 // BASE DE DONNÉES DES COMPÉTENCES
 // ===============================
 
 const skillsDatabase = [
-  "React", "Angular", "Vue", "Node.js", "Express", "NestJS", 
-  "PostgreSQL", "MySQL", "MongoDB", "SQL", "TypeScript", 
-  "JavaScript", "Python", "Java", "PHP", "Laravel", "HTML", 
-  "CSS", "Bootstrap", "Tailwind", "Docker", "Kubernetes", 
-  "AWS", "Azure", "Git", "GitHub", "API", "REST", "FastAPI", 
-  "Django", "Flutter", "Data", "Machine Learning", "Deep Learning", 
+  "React", "Angular", "Vue", "Node.js", "Express", "NestJS",
+  "PostgreSQL", "MySQL", "MongoDB", "SQL", "TypeScript",
+  "JavaScript", "Python", "Java", "PHP", "Laravel", "HTML",
+  "CSS", "Bootstrap", "Tailwind", "Docker", "Kubernetes",
+  "AWS", "Azure", "Git", "GitHub", "API", "REST", "FastAPI",
+  "Django", "Flutter", "Data", "Machine Learning", "Deep Learning",
   "IA", "AI", "NLP", "Linux", "DevOps",
-  "Node JS", "Node", "Express.js", "Postgres", "Postgre", 
-  "REST API", "API REST", "React.js", "Next.js", "SQL Server", 
+  "Node JS", "Node", "Express.js", "Postgres", "Postgre",
+  "REST API", "API REST", "React.js", "Next.js", "SQL Server",
   "HTML5", "CSS3"
 ];
 
@@ -44,7 +53,7 @@ const normalizeText = (text) => {
 };
 
 const escapeRegExp = (string) => {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 };
 
 // ===============================
@@ -82,15 +91,30 @@ const getProfileLevel = (score) => {
 
 const getDecision = (score) => {
   if (score >= 85) {
-    return { decision: "Excellent profil — recrutement recommandé", decisionColor: "green" };
+    return {
+      decision: "Excellent profil — recrutement recommandé",
+      decisionColor: "green",
+    };
   }
+
   if (score >= 70) {
-    return { decision: "Bon profil — entretien conseillé", decisionColor: "blue" };
+    return {
+      decision: "Bon profil — entretien conseillé",
+      decisionColor: "blue",
+    };
   }
+
   if (score >= 50) {
-    return { decision: "Profil moyen — CV à améliorer", decisionColor: "yellow" };
+    return {
+      decision: "Profil moyen — CV à améliorer",
+      decisionColor: "yellow",
+    };
   }
-  return { decision: "Profil faible — non recommandé", decisionColor: "red" };
+
+  return {
+    decision: "Profil faible — non recommandé",
+    decisionColor: "red",
+  };
 };
 
 // ===============================
@@ -193,14 +217,16 @@ const extractDynamicJobTitle = (lines) => {
       continue;
     }
 
-    const hasTitleKeyword = titleKeywords.some(keyword => lowerLine.includes(keyword));
+    const hasTitleKeyword = titleKeywords.some((keyword) =>
+      lowerLine.includes(keyword)
+    );
 
     if (hasTitleKeyword) {
-      return cleanLine; 
+      return cleanLine;
     }
   }
 
-  return "Profil Informatique"; 
+  return "Profil Informatique";
 };
 
 // ===============================
@@ -208,17 +234,23 @@ const extractDynamicJobTitle = (lines) => {
 // ===============================
 
 const analyzeUploadedCV = async (req, res) => {
+  const startTime = Date.now();
+
   try {
     // ===============================
     // VÉRIFICATION FICHIER
     // ===============================
 
     if (!req.file) {
-      return res.status(400).json({ message: "Aucun fichier PDF reçu." });
+      return res.status(400).json({
+        message: "Aucun fichier PDF reçu.",
+      });
     }
 
     if (req.file.mimetype !== "application/pdf") {
-      return res.status(400).json({ message: "Le fichier doit être un PDF." });
+      return res.status(400).json({
+        message: "Le fichier doit être un PDF.",
+      });
     }
 
     // ===============================
@@ -244,7 +276,8 @@ const analyzeUploadedCV = async (req, res) => {
 
     if (wordCount < 80) {
       return res.status(400).json({
-        message: "Document refusé : fichier trop court pour être un CV professionnel.",
+        message:
+          "Document refusé : fichier trop court pour être un CV professionnel.",
       });
     }
 
@@ -253,11 +286,18 @@ const analyzeUploadedCV = async (req, res) => {
     // ===============================
 
     const forbiddenDocuments = [
-      "lettre de motivation", "madame, monsieur", "veuillez agréer",
-      "facture", "devis", "attestation", "contrat de bail"
+      "lettre de motivation",
+      "madame, monsieur",
+      "veuillez agréer",
+      "facture",
+      "devis",
+      "attestation",
+      "contrat de bail",
     ];
 
-    const isNotCV = forbiddenDocuments.some((word) => cvLower.includes(word));
+    const isNotCV = forbiddenDocuments.some((word) =>
+      cvLower.includes(word)
+    );
 
     if (isNotCV) {
       return res.status(400).json({
@@ -269,20 +309,39 @@ const analyzeUploadedCV = async (req, res) => {
     // VALIDATION STRUCTURE CV
     // ===============================
 
-    const hasEmail = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(cvText);
-    const hasPhone = /(\+?\d[\d\s().-]{7,}\d)/.test(cvText);
+    const hasEmail =
+      /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(cvText);
+
+    const hasPhone =
+      /(\+?\d[\d\s().-]{7,}\d)/.test(cvText);
+
     const hasContact = hasEmail || hasPhone;
 
     const hasExperience = [
-      "expérience", "experience", "stage", "emploi", "mission", "poste", "alternance"
+      "expérience",
+      "experience",
+      "stage",
+      "emploi",
+      "mission",
+      "poste",
+      "alternance",
     ].some((word) => cvLower.includes(word));
 
     const hasEducation = [
-      "formation", "diplôme", "master", "licence", "bachelor", "université", "école"
+      "formation",
+      "diplôme",
+      "master",
+      "licence",
+      "bachelor",
+      "université",
+      "école",
     ].some((word) => cvLower.includes(word));
 
     const hasSkillsSection = [
-      "compétences", "skills", "technologies", "outils"
+      "compétences",
+      "skills",
+      "technologies",
+      "outils",
     ].some((word) => cvLower.includes(word));
 
     if (!hasContact || !hasEducation || !hasSkillsSection) {
@@ -296,7 +355,7 @@ const analyzeUploadedCV = async (req, res) => {
     // ===============================
 
     const jobContext = req.body.jobContext || "";
-    
+
     if (jobContext.trim().length < 10) {
       return res.status(400).json({
         message: "Veuillez renseigner le besoin de l’entreprise.",
@@ -319,27 +378,48 @@ const analyzeUploadedCV = async (req, res) => {
 
     if (requiredSkills.length === 0) {
       return res.status(400).json({
-        message: "Aucune compétence technique détectée dans le besoin entreprise.",
+        message:
+          "Aucune compétence technique détectée dans le besoin entreprise.",
       });
     }
 
-    const matchingSkills = detectedSkills.filter((skill) => requiredSkills.includes(skill));
-    const missingSkills = requiredSkills.filter((skill) => !detectedSkills.includes(skill));
+    const matchingSkills = detectedSkills.filter((skill) =>
+      requiredSkills.includes(skill)
+    );
+
+    const missingSkills = requiredSkills.filter(
+      (skill) => !detectedSkills.includes(skill)
+    );
 
     // ===============================
     // EXTRACTIONS
     // ===============================
 
-    const emailMatch = cvText.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
-    const extractedEmail = emailMatch ? emailMatch[0] : "Non renseigné";
+    const emailMatch = cvText.match(
+      /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/
+    );
+
+    const extractedEmail = emailMatch
+      ? emailMatch[0]
+      : "Non renseigné";
 
     const extractedPhone = extractPhone(cvText);
 
-    const linkedinMatch = cvText.match(/(https?:\/\/)?(www\.)?linkedin\.com\/[^\s]+/i);
-    const extractedLinkedin = linkedinMatch ? linkedinMatch[0] : "Non renseigné";
+    const linkedinMatch = cvText.match(
+      /(https?:\/\/)?(www\.)?linkedin\.com\/[^\s]+/i
+    );
 
-    const githubMatch = cvText.match(/(https?:\/\/)?(www\.)?github\.com\/[^\s]+/i);
-    const extractedGithub = githubMatch ? githubMatch[0] : "Non renseigné";
+    const extractedLinkedin = linkedinMatch
+      ? linkedinMatch[0]
+      : "Non renseigné";
+
+    const githubMatch = cvText.match(
+      /(https?:\/\/)?(www\.)?github\.com\/[^\s]+/i
+    );
+
+    const extractedGithub = githubMatch
+      ? githubMatch[0]
+      : "Non renseigné";
 
     // Préparation des lignes pour l'extraction de nom et titre
     const lines = (data.text || "")
@@ -355,14 +435,24 @@ const analyzeUploadedCV = async (req, res) => {
     // ===============================
 
     const yearsExperience = detectYearsExperience(cvText);
-    const hasProjects = cvLower.includes("projet") || cvLower.includes("project");
-    const speaksEnglish = cvLower.includes("anglais") || cvLower.includes("english");
+
+    const hasProjects =
+      cvLower.includes("projet") ||
+      cvLower.includes("project");
+
+    const speaksEnglish =
+      cvLower.includes("anglais") ||
+      cvLower.includes("english");
 
     // ===============================
     // CALCUL SCORE IA
     // ===============================
 
-    const matchingRate = requiredSkills.length > 0 ? matchingSkills.length / requiredSkills.length : 0;
+    const matchingRate =
+      requiredSkills.length > 0
+        ? matchingSkills.length / requiredSkills.length
+        : 0;
+
     let score = 20;
 
     score += Math.round(matchingRate * 55);
@@ -392,31 +482,58 @@ const analyzeUploadedCV = async (req, res) => {
     // ===============================
 
     const strengths = [];
-    if (matchingSkills.length > 0) strengths.push("Compétences alignées avec le poste.");
-    if (detectedSkills.length >= 4) strengths.push("Bon profil technique.");
-    if (hasExperience) strengths.push("Expérience professionnelle détectée.");
-    if (hasProjects) strengths.push("Présence de projets techniques.");
+
+    if (matchingSkills.length > 0) {
+      strengths.push("Compétences alignées avec le poste.");
+    }
+
+    if (detectedSkills.length >= 4) {
+      strengths.push("Bon profil technique.");
+    }
+
+    if (hasExperience) {
+      strengths.push("Expérience professionnelle détectée.");
+    }
+
+    if (hasProjects) {
+      strengths.push("Présence de projets techniques.");
+    }
 
     const weaknesses = [];
-    if (missingSkills.length > 0) weaknesses.push(`Compétences manquantes : ${missingSkills.join(", ")}`);
-    if (extractedLinkedin === "Non renseigné") weaknesses.push("LinkedIn non renseigné.");
-    if (extractedGithub === "Non renseigné") weaknesses.push("GitHub non renseigné.");
+
+    if (missingSkills.length > 0) {
+      weaknesses.push(
+        `Compétences manquantes : ${missingSkills.join(", ")}`
+      );
+    }
+
+    if (extractedLinkedin === "Non renseigné") {
+      weaknesses.push("LinkedIn non renseigné.");
+    }
+
+    if (extractedGithub === "Non renseigné") {
+      weaknesses.push("GitHub non renseigné.");
+    }
 
     // ===============================
     // RÉSUMÉ IA NARRATIF
     // ===============================
-    
+
     const uniqueDetectedSkills = [...new Set(detectedSkills)];
 
     const summary = `Le candidat ${extractedName} présente un profil de ${extractedTitle}.
 
 L'analyse du CV a permis d'identifier ${uniqueDetectedSkills.length} compétence(s) technique(s).
 
-Le score IA global est de ${score}%, ce qui indique un profil ${score >= 70 ? "intéressant" : "à évaluer plus en détail"} pour le besoin de l'entreprise.
+Le score IA global est de ${score}%, ce qui indique un profil ${
+      score >= 70 ? "intéressant" : "à évaluer plus en détail"
+    } pour le besoin de l'entreprise.
 
-${missingSkills.length > 0
-  ? `Des améliorations sont recommandées sur les compétences manquantes suivantes : ${missingSkills.join(", ")}.`
-  : "Aucune compétence critique manquante n'a été détectée par rapport au besoin initial."}
+${
+  missingSkills.length > 0
+    ? `Des améliorations sont recommandées sur les compétences manquantes suivantes : ${missingSkills.join(", ")}.`
+    : "Aucune compétence critique manquante n'a été détectée par rapport au besoin initial."
+}
 
 Décision RH proposée : ${decision}.`;
 
@@ -434,26 +551,39 @@ Décision RH proposée : ${decision}.`;
     const interviewQuestions = [];
 
     matchingSkills.slice(0, 5).forEach((skill) => {
-      interviewQuestions.push(`Expliquez votre expérience avec ${skill}.`);
+      interviewQuestions.push(
+        `Expliquez votre expérience avec ${skill}.`
+      );
     });
 
     missingSkills.slice(0, 3).forEach((skill) => {
-      interviewQuestions.push(`Comment comptez-vous développer votre compétence en ${skill} ?`);
+      interviewQuestions.push(
+        `Comment comptez-vous développer votre compétence en ${skill} ?`
+      );
     });
 
-    interviewQuestions.push("Présentez un projet dont vous êtes le plus fier.");
-    interviewQuestions.push("Pourquoi souhaitez-vous rejoindre notre entreprise ?");
+    interviewQuestions.push(
+      "Présentez un projet dont vous êtes le plus fier."
+    );
+
+    interviewQuestions.push(
+      "Pourquoi souhaitez-vous rejoindre notre entreprise ?"
+    );
 
     let hrRecommendation = "";
 
     if (score >= 85) {
-      hrRecommendation = "Profil fortement recommandé. Le candidat possède une excellente adéquation avec le poste.";
+      hrRecommendation =
+        "Profil fortement recommandé. Le candidat possède une excellente adéquation avec le poste.";
     } else if (score >= 70) {
-      hrRecommendation = "Profil intéressant. Un entretien technique est recommandé pour valider les acquis.";
+      hrRecommendation =
+        "Profil intéressant. Un entretien technique est recommandé pour valider les acquis.";
     } else if (score >= 50) {
-      hrRecommendation = "Profil moyen. Des compétences importantes sont manquantes, à évaluer selon l'urgence.";
+      hrRecommendation =
+        "Profil moyen. Des compétences importantes sont manquantes, à évaluer selon l'urgence.";
     } else {
-      hrRecommendation = "Profil peu adapté au besoin actuel de l'entreprise.";
+      hrRecommendation =
+        "Profil peu adapté au besoin actuel de l'entreprise.";
     }
 
     // ===============================
@@ -500,10 +630,33 @@ Décision RH proposée : ${decision}.`;
     );
 
     // ===============================
+    // AI MONITORING LOG
+    // ===============================
+
+    await logAISuccess({
+      req,
+      endpoint: "/api/cv/analyze-file",
+      model: "SmartRecruit PDF CV Scoring Engine",
+      score,
+      decision,
+      responseTimeMs: Date.now() - startTime,
+      cvName: req.file.originalname || extractedName,
+      jobContext,
+      promptTokens: Math.round(cvText.length / 4),
+      completionTokens: Math.round(summary.length / 4),
+      totalTokens:
+        Math.round(cvText.length / 4) +
+        Math.round(summary.length / 4),
+      userId: req.user?.id || req.user?.userId || null,
+      userRole: req.user?.role || null,
+    });
+
+    // ===============================
     // SOCKET NOTIFICATION
     // ===============================
 
     const io = req.app.get("io");
+
     if (io) {
       io.emit("notification", {
         type: "success",
@@ -542,8 +695,8 @@ Décision RH proposée : ${decision}.`;
       strengths,
       weaknesses,
       advice,
-      interviewQuestions, 
-      hrRecommendation,   
+      interviewQuestions,
+      hrRecommendation,
       statistics: {
         detectedSkills: detectedSkills.length,
         requiredSkills: requiredSkills.length,
@@ -555,7 +708,22 @@ Décision RH proposée : ${decision}.`;
     });
   } catch (error) {
     console.log(error);
-    res.status(500).json({ message: "Erreur analyse PDF." });
+
+    await logAIError({
+      req,
+      endpoint: "/api/cv/analyze-file",
+      model: "SmartRecruit PDF CV Scoring Engine",
+      responseTimeMs: Date.now() - startTime,
+      errorMessage: error.message || "Erreur analyse PDF.",
+      cvName: req.file?.originalname || "CV PDF",
+      jobContext: req.body?.jobContext || null,
+      userId: req.user?.id || req.user?.userId || null,
+      userRole: req.user?.role || null,
+    });
+
+    res.status(500).json({
+      message: "Erreur analyse PDF.",
+    });
   }
 };
 
